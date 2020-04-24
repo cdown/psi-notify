@@ -190,6 +190,7 @@ int main(int argc, char *argv[]) {
             printf("IO pressure high\n");
         }
 
+        /* TODO: get from config */
         sleep(1);
     }
 }
