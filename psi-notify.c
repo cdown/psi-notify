@@ -1,6 +1,7 @@
 /* gcc psi-notify.c `pkg-config --cflags --libs libnotify` -o psi-notify */
 
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <libnotify/notify.h>
 #include <linux/limits.h>
@@ -128,6 +129,12 @@ void update_threshold(Config *c, const char *line) {
     }
 }
 
+int is_empty(const char *s) {
+    while (isspace((unsigned char)*s))
+        s++;
+    return *s == '\0';
+}
+
 void update_config(Config *c) {
     struct passwd *pw = getpwuid(getuid());
     char line[CONFIG_LINE_MAX];
@@ -143,6 +150,14 @@ void update_config(Config *c) {
     }
 
     while (fgets(line, sizeof(line), f)) {
+        if (is_empty(line)) {
+            continue;
+        }
+
+        if (line[0] == '#') {
+            continue;
+        }
+
         if (startswith(line, "threshold ")) {
             update_threshold(c, line);
         } else {
