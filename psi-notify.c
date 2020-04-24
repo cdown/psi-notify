@@ -171,9 +171,13 @@ int check_pressures(Resource *r, int has_full) {
 int main(int argc, char *argv[]) {
     Config *config = init_config();
 
+    /*
+     * TODO: If discussion on unprivileged PSI poll() support upstream ends up
+     * with patches, change this to use poll() and a real event loop.
+     *
+     * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
+     */
     while (1) {
-        int ret;
-
         if (check_pressures(&config->cpu, 0) > 0) {
             printf("CPU pressure high\n");
         }
