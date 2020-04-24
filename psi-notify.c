@@ -12,25 +12,20 @@ typedef struct {
     TimeResourcePressure ten;
     TimeResourcePressure sixty;
     TimeResourcePressure three_hundred;
-} ResourcePressure;
+} Pressure;
 
 typedef struct {
     int available : 1;
     char *filename;
-    ResourcePressure rp; /* only valid if available */
-} FileResourcePressure;
+    Pressure pressure; /* only valid if available */
+    Pressure thresholds;
+} Resource;
 
 typedef struct {
-    FileResourcePressure cpu;
-    FileResourcePressure memory;
-    FileResourcePressure io;
-} SystemPressure;
-
-typedef struct {
-    ResourcePressure cpu;
-    ResourcePressure memory;
-    ResourcePressure io;
-} SystemThresholds;
+    Resource cpu;
+    Resource memory;
+    Resource io;
+} Config;
 
 char *get_pressure_file(char *resource) {
     char *path;
@@ -62,50 +57,35 @@ char *get_pressure_file(char *resource) {
     return NULL;
 }
 
-SystemPressure *init_system_pressure(void) {
-    SystemPressure *sp;
+void update_thresholds(Config *c) {
+    /* TODO: get from config */
+    c->cpu.thresholds.ten.some = 0.1f;
+    c->memory.thresholds.sixty.some = 0.1f;
+}
 
-    sp = calloc(1, sizeof(SystemPressure));
-    if (!sp) {
+Config *init_config(void) {
+    Config *c;
+
+    c = calloc(1, sizeof(Config));
+    if (!c) {
         perror("calloc");
         abort();
     }
 
-    sp->cpu.filename = get_pressure_file("cpu");
-    sp->memory.filename = get_pressure_file("memory");
-    sp->io.filename = get_pressure_file("io");
+    c->cpu.filename = get_pressure_file("cpu");
+    c->memory.filename = get_pressure_file("memory");
+    c->io.filename = get_pressure_file("io");
 
-    return sp;
-}
+    update_thresholds(c);
 
-SystemThresholds get_thresholds(void) {
-    /* TODO: get from config */
-    SystemThresholds thr;
-
-    thr.cpu.ten.some = 0.1f;
-    thr.memory.ten.some = 0.1f;
-
-    return thr;
+    return c;
 }
 
 int main(int argc, char *argv[]) {
-    SystemPressure *psi = init_system_pressure();
-    SystemThresholds thr = get_thresholds();
+    Config *config = init_config();
 
-    /*
-     * TODO: Once PSI support unprivileged poll(), we should start using a real
-     * event loop.
-     *
-     * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
-     */
-    while (1) {
-
-        /* TODO: configurable by config */
-        sleep(1);
-    }
-
-    printf("%s\n", psi->cpu.filename);
-    printf("%f\n", thr.cpu.ten.some);
-    printf("%f\n", thr.cpu.ten.full);
-    printf("%f\n", thr.cpu.sixty.full);
+    printf("%s\n", config->cpu.filename);
+    printf("%f\n", config->cpu.thresholds.ten.some);
+    printf("%f\n", config->cpu.thresholds.ten.full);
+    printf("%f\n", config->cpu.thresholds.sixty.full);
 }
