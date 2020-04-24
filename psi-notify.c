@@ -288,12 +288,13 @@ int check_pressures(Resource *r, int has_full) {
 
 void notify(const char *resource) {
     char *title = alloca(TITLE_MAX);
+    NotifyNotification *n;
 
     assert(notify_is_initted());
 
     (void)snprintf(title, TITLE_MAX, "High %s pressure!", resource);
 
-    NotifyNotification *n = notify_notification_new(
+    n = notify_notification_new(
         title, "Consider reducing demand on this resource.", NULL);
     notify_notification_set_urgency(n, NOTIFY_URGENCY_CRITICAL);
     (void)notify_notification_show(n, NULL);
