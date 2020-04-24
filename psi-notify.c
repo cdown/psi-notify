@@ -17,6 +17,7 @@ typedef struct {
 typedef struct {
     int available : 1;
     char *filename;
+    char *name;
     Pressure pressure; /* only valid if available */
     Pressure thresholds;
 } Resource;
@@ -63,6 +64,10 @@ void update_thresholds(Config *c) {
     c->memory.thresholds.sixty.some = 0.1f;
 }
 
+#define SET_NAMES(c, _name)                                                    \
+    (c)->_name.filename = get_pressure_file(#_name);                           \
+    (c)->_name.name = #_name;
+
 Config *init_config(void) {
     Config *c;
 
@@ -72,20 +77,25 @@ Config *init_config(void) {
         abort();
     }
 
-    c->cpu.filename = get_pressure_file("cpu");
-    c->memory.filename = get_pressure_file("memory");
-    c->io.filename = get_pressure_file("io");
+    SET_NAMES(c, cpu);
+    SET_NAMES(c, memory);
+    SET_NAMES(c, io);
 
     update_thresholds(c);
 
     return c;
 }
 
+void check_pressures(Config *c) {}
+
 int main(int argc, char *argv[]) {
     Config *config = init_config();
 
+    printf("%s\n", config->cpu.name);
     printf("%s\n", config->cpu.filename);
-    printf("%f\n", config->cpu.thresholds.ten.some);
-    printf("%f\n", config->cpu.thresholds.ten.full);
-    printf("%f\n", config->cpu.thresholds.sixty.full);
+
+    while (1) {
+        check_pressures(config);
+        sleep(1);
+    }
 }
