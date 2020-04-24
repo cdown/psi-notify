@@ -132,7 +132,7 @@ void update_threshold(Config *c, const char *line) {
     }
 }
 
-int is_empty(const char *s) {
+int is_blank(const char *s) {
     while (isspace((unsigned char)*s))
         s++;
     return *s == '\0';
@@ -153,7 +153,7 @@ void update_config(Config *c) {
     }
 
     while (fgets(line, sizeof(line), f)) {
-        if (is_empty(line)) {
+        if (is_blank(line)) {
             continue;
         }
 
