@@ -1,4 +1,7 @@
+/* gcc psi-notify.c `pkg-config --cflags --libs libnotify` -o psi-notify */
+
 #include <errno.h>
+#include <libnotify/notify.h>
 #include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -171,6 +174,8 @@ int check_pressures(Resource *r, int has_full) {
 int main(int argc, char *argv[]) {
     Config *config = init_config();
 
+    notify_init("psi-notify");
+
     /*
      * TODO: If discussion on unprivileged PSI poll() support upstream ends up
      * with patches, change this to use poll() and a real event loop.
@@ -178,16 +183,21 @@ int main(int argc, char *argv[]) {
      * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
      */
     while (1) {
+        NotifyNotification *popup;
+
         if (check_pressures(&config->cpu, 0) > 0) {
-            printf("CPU pressure high\n");
+            popup = notify_notification_new("CPU pressure high", NULL, NULL);
+            (void)notify_notification_show(popup, NULL);
         }
 
         if (check_pressures(&config->memory, 1) > 0) {
-            printf("Memory pressure high\n");
+            popup = notify_notification_new("Memory pressure high", NULL, NULL);
+            (void)notify_notification_show(popup, NULL);
         }
 
         if (check_pressures(&config->io, 1) > 0) {
-            printf("IO pressure high\n");
+            popup = notify_notification_new("IO pressure high", NULL, NULL);
+            (void)notify_notification_show(popup, NULL);
         }
 
         /* TODO: get from config */
