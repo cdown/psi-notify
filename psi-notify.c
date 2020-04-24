@@ -281,9 +281,18 @@ int check_pressures(Resource *r, int has_full) {
     return 0;
 }
 
-void notify(const char *msg) {
+#define TITLE_MAX 32
+
+void notify(const char *resource) {
+    char *title = alloca(TITLE_MAX);
+
     assert(notify_is_initted());
-    NotifyNotification *n = notify_notification_new(msg, NULL, NULL);
+
+    (void)snprintf(title, TITLE_MAX, "High %s pressure!", resource);
+
+    NotifyNotification *n = notify_notification_new(
+        title, "Consider reducing demand on this resource.", NULL);
+    notify_notification_set_urgency(n, NOTIFY_URGENCY_CRITICAL);
     (void)notify_notification_show(n, NULL);
     g_object_unref(n);
 }
@@ -301,15 +310,15 @@ int main(void) {
      */
     while (1) {
         if (check_pressures(&config->cpu, 0) > 0) {
-            notify("CPU pressure high");
+            notify("CPU");
         }
 
         if (check_pressures(&config->memory, 1) > 0) {
-            notify("Memory pressure high");
+            notify("memory");
         }
 
         if (check_pressures(&config->io, 1) > 0) {
-            notify("I/O pressure high");
+            notify("I/O");
         }
 
         sleep(config->update_interval);
