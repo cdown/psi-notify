@@ -60,6 +60,9 @@ char *get_pressure_file(char *resource) {
         return path;
     }
 
+    fprintf(stderr,
+            "Couldn't find any pressure file for resource %s, skipping\n",
+            resource);
     free(path);
     return NULL;
 }
