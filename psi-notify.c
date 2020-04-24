@@ -4,8 +4,10 @@
 #include <errno.h>
 #include <libnotify/notify.h>
 #include <linux/limits.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 typedef struct {
@@ -28,6 +30,7 @@ typedef struct {
     Resource cpu;
     Resource memory;
     Resource io;
+    int update_interval;
 } Config;
 
 char *get_pressure_file(char *resource) {
@@ -60,10 +63,107 @@ char *get_pressure_file(char *resource) {
     return NULL;
 }
 
-void update_thresholds(Config *c) {
-    /* TODO: get from config */
-    c->cpu.thresholds.ten.some = 0.1f;
-    c->memory.thresholds.sixty.some = 0.1f;
+static inline char *startswith(const char *s, const char *prefix) {
+    size_t l;
+
+    l = strlen(prefix);
+    if (strncmp(s, prefix, l) == 0) {
+        return (char *)s + l;
+    }
+
+    return NULL;
+}
+
+#define CONFIG_LINE_MAX 256
+
+void update_threshold(Config *c, const char *line) {
+    int ret;
+    char resource[CONFIG_LINE_MAX], type[CONFIG_LINE_MAX],
+        interval[CONFIG_LINE_MAX];
+    float threshold;
+    Resource *r;
+    TimeResourcePressure *t;
+
+    ret = sscanf(line, "%*s %s %s %s %f", resource, type, interval, &threshold);
+    if (ret != 4) {
+        fprintf(stderr, "Invalid threshold, ignoring: %s", line);
+        return;
+    }
+
+    if (strcmp(resource, "cpu") == 0) {
+        r = &c->cpu;
+    } else if (strcmp(resource, "memory") == 0) {
+        r = &c->memory;
+    } else if (strcmp(resource, "io") == 0) {
+        r = &c->io;
+    } else {
+        fprintf(stderr, "Invalid resource in config, ignoring: '%s'\n",
+                resource);
+        return;
+    }
+
+    if (strcmp(interval, "avg10") == 0) {
+        t = &r->thresholds.ten;
+    } else if (strcmp(interval, "avg60") == 0) {
+        t = &r->thresholds.sixty;
+    } else if (strcmp(interval, "avg300") == 0) {
+        t = &r->thresholds.three_hundred;
+    } else {
+        fprintf(stderr, "Invalid interval in config, ignoring: '%s'\n",
+                interval);
+        return;
+    }
+
+    if (strcmp(type, "some") == 0) {
+        t->some = threshold;
+    } else if (strcmp(type, "full") == 0) {
+        if (strcmp(resource, "cpu") == 0) {
+            fprintf(stderr, "full interval for CPU is bogus, ignoring\n");
+            return;
+        }
+        t->full = threshold;
+    } else {
+        fprintf(stderr, "Invalid type in config, ignoring: '%s'\n", type);
+        return;
+    }
+}
+
+void update_config(Config *c) {
+    struct passwd *pw = getpwuid(getuid());
+    char line[CONFIG_LINE_MAX];
+    char config_path[PATH_MAX];
+    FILE *f;
+
+    (void)snprintf(config_path, PATH_MAX, "%s/.config/psi-notify", pw->pw_dir);
+
+    f = fopen(config_path, "r");
+    if (!f) {
+        perror(config_path);
+        exit(1);
+    }
+
+    while (fgets(line, sizeof(line), f)) {
+        if (startswith(line, "threshold ")) {
+            update_threshold(c, line);
+        } else {
+            int ret;
+            char lvalue[CONFIG_LINE_MAX];
+            int rvalue;
+
+            ret = sscanf(line, "%s %d", lvalue, &rvalue);
+            if (ret != 2) {
+                fprintf(stderr, "Invalid config line, ignoring: %s", line);
+                continue;
+            }
+
+            if (strcmp(lvalue, "update") == 0) {
+                c->update_interval = rvalue;
+            } else {
+                fprintf(stderr, "Invalid config line, ignoring: %s", line);
+                continue;
+            }
+        }
+    }
 }
 
 Config *init_config(void) {
@@ -78,8 +178,9 @@ Config *init_config(void) {
     c->cpu.filename = get_pressure_file("cpu");
     c->memory.filename = get_pressure_file("memory");
     c->io.filename = get_pressure_file("io");
+    c->update_interval = 10;
 
-    update_thresholds(c);
+    update_config(c);
 
     return c;
 }
@@ -172,7 +273,7 @@ void notify(const char *msg) {
     g_object_unref(n);
 }
 
-int main(int argc, char *argv[]) {
+int main(void) {
     Config *config = init_config();
 
     notify_init("psi-notify");
@@ -184,8 +285,6 @@ int main(int argc, char *argv[]) {
      * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
      */
     while (1) {
-        NotifyNotification *popup;
-
         if (check_pressures(&config->cpu, 0) > 0) {
             notify("CPU pressure high");
         }
@@ -198,7 +297,6 @@ int main(int argc, char *argv[]) {
             notify("I/O pressure high");
         }
 
-        /* TODO: get from config */
-        sleep(1);
+        sleep(config->update_interval);
     }
 }
