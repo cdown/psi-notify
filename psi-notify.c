@@ -9,20 +9,28 @@ typedef struct {
 } TimeResourcePressure;
 
 typedef struct {
-    int available : 1;
-    char *filename;
-
-    /* TRPs are only valid if available is true */
     TimeResourcePressure ten;
     TimeResourcePressure sixty;
     TimeResourcePressure three_hundred;
 } ResourcePressure;
 
 typedef struct {
+    int available : 1;
+    char *filename;
+    ResourcePressure rp; /* only valid if available */
+} FileResourcePressure;
+
+typedef struct {
+    FileResourcePressure cpu;
+    FileResourcePressure memory;
+    FileResourcePressure io;
+} SystemPressure;
+
+typedef struct {
     ResourcePressure cpu;
     ResourcePressure memory;
     ResourcePressure io;
-} SystemPressure;
+} SystemThresholds;
 
 char *get_pressure_file(char *resource) {
     char *path;
@@ -70,6 +78,34 @@ SystemPressure *init_system_pressure(void) {
     return sp;
 }
 
+SystemThresholds get_thresholds(void) {
+    /* TODO: get from config */
+    SystemThresholds thr;
+
+    thr.cpu.ten.some = 0.1f;
+    thr.memory.ten.some = 0.1f;
+
+    return thr;
+}
+
 int main(int argc, char *argv[]) {
     SystemPressure *psi = init_system_pressure();
+    SystemThresholds thr = get_thresholds();
+
+    /*
+     * TODO: Once PSI support unprivileged poll(), we should start using a real
+     * event loop.
+     *
+     * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
+     */
+    while (1) {
+
+        /* TODO: configurable by config */
+        sleep(1);
+    }
+
+    printf("%s\n", psi->cpu.filename);
+    printf("%f\n", thr.cpu.ten.some);
+    printf("%f\n", thr.cpu.ten.full);
+    printf("%f\n", thr.cpu.sixty.full);
 }
