@@ -1,5 +1,6 @@
 /* gcc psi-notify.c `pkg-config --cflags --libs libnotify` -o psi-notify */
 
+#include <assert.h>
 #include <errno.h>
 #include <libnotify/notify.h>
 #include <linux/limits.h>
@@ -164,6 +165,13 @@ int check_pressures(Resource *r, int has_full) {
     return 0;
 }
 
+void notify(const char *msg) {
+    assert(notify_is_initted());
+    NotifyNotification *n = notify_notification_new(msg, NULL, NULL);
+    (void)notify_notification_show(n, NULL);
+    g_object_unref(n);
+}
+
 int main(int argc, char *argv[]) {
     Config *config = init_config();
 
@@ -179,18 +187,15 @@ int main(int argc, char *argv[]) {
         NotifyNotification *popup;
 
         if (check_pressures(&config->cpu, 0) > 0) {
-            popup = notify_notification_new("CPU pressure high", NULL, NULL);
-            (void)notify_notification_show(popup, NULL);
+            notify("CPU pressure high");
         }
 
         if (check_pressures(&config->memory, 1) > 0) {
-            popup = notify_notification_new("Memory pressure high", NULL, NULL);
-            (void)notify_notification_show(popup, NULL);
+            notify("Memory pressure high");
         }
 
         if (check_pressures(&config->io, 1) > 0) {
-            popup = notify_notification_new("IO pressure high", NULL, NULL);
-            (void)notify_notification_show(popup, NULL);
+            notify("I/O pressure high");
         }
 
         /* TODO: get from config */
