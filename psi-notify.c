@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,16 +87,105 @@ Config *init_config(void) {
     return c;
 }
 
-void check_pressures(Config *c) {}
+/*
+ * We don't care about total=, so that doesn't need consideration. Therefore
+ * the max line len is len("some avg10=100.00 avg60=100.00 avg300=100.00").
+ * However, we add a bit more for total= so that fgets can seek to the next
+ * newline.
+ *
+ * We don't need to read in one go like old /proc files, since all of these are
+ * backed by seq_file in the kernel.
+ */
+#define PRESSURE_LINE_LEN 64
+
+/*
+ * >0: Above thresholds
+ *  0: Within thresholds
+ * <0: Error
+ */
+int check_pressures(Resource *r, int has_full) {
+    FILE *f;
+    char line[PRESSURE_LINE_LEN];
+    int ret;
+    char *start;
+    float ten, sixty, three_hundred;
+
+    if (!r->filename) {
+        return 0;
+    }
+
+    f = fopen(r->filename, "r");
+
+    if (!f) {
+        perror(r->filename);
+        return -EINVAL;
+    }
+
+    start = fgets(line, sizeof(line), f);
+    if (!start) {
+        fprintf(stderr, "Premature EOF from %s\n", r->filename);
+        return -EINVAL;
+    }
+
+    ret = sscanf(line, "%*s avg10=%f avg60=%f avg300=%f total=%*s", &ten,
+                 &sixty, &three_hundred);
+    if (ret != 3) {
+        fprintf(stderr, "Can't parse 'some' from %s\n", r->filename);
+        return -EINVAL;
+    }
+
+    if ((r->thresholds.ten.some && ten > r->thresholds.ten.some) ||
+        (r->thresholds.sixty.some && sixty > r->thresholds.sixty.some) ||
+        (r->thresholds.three_hundred.some &&
+         three_hundred > r->thresholds.three_hundred.some)) {
+        return 1;
+    }
+
+    if (!has_full) {
+        return 0;
+    }
+
+    start = fgets(line, sizeof(line), f);
+    if (!start) {
+        fprintf(stderr, "Premature EOF from %s\n", r->filename);
+        return -EINVAL;
+    }
+
+    ret = sscanf(line, "%*s avg10=%f avg60=%f avg300=%f total=%*s", &ten,
+                 &sixty, &three_hundred);
+    if (ret != 3) {
+        fprintf(stderr, "Can't parse 'full' from %s\n", r->filename);
+        return -EINVAL;
+    }
+
+    if ((r->thresholds.ten.full && ten > r->thresholds.ten.full) ||
+        (r->thresholds.sixty.full && sixty > r->thresholds.sixty.full) ||
+        (r->thresholds.three_hundred.full &&
+         three_hundred > r->thresholds.three_hundred.full)) {
+        return 1;
+    }
+
+    return 0;
+}
 
 int main(int argc, char *argv[]) {
     Config *config = init_config();
 
-    printf("%s\n", config->cpu.name);
-    printf("%s\n", config->cpu.filename);
-
     while (1) {
-        check_pressures(config);
+        int ret;
+
+        if (check_pressures(&config->cpu, 0) > 0) {
+            printf("CPU pressure high\n");
+        }
+
+        if (check_pressures(&config->memory, 1) > 0) {
+            printf("Memory pressure high\n");
+        }
+
+        if (check_pressures(&config->io, 1) > 0) {
+            printf("IO pressure high\n");
+        }
+
         sleep(1);
     }
 }
