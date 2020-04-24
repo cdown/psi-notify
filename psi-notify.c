@@ -94,6 +94,13 @@ void update_threshold(Config *c, const char *line) {
         return;
     }
 
+    if (!threshold) {
+        fprintf(stderr,
+                "Zero threshold for %s::%s::%s disables checks, ignoring: %f\n",
+                resource, type, interval, threshold);
+        return;
+    }
+
     if (strcmp(resource, "cpu") == 0) {
         r = &c->cpu;
     } else if (strcmp(resource, "memory") == 0) {
