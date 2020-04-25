@@ -63,7 +63,8 @@ char *get_pressure_file(char *resource) {
 
     /*
      * If we have a logind seat for this user, use the pressure stats for that
-     * seat's slice. Otherwise, use the system-global pressure stats.
+     * seat's slice on cgroup v2. Otherwise, use the system-global pressure
+     * stats.
      */
     (void)snprintf(path, PATH_MAX,
                    "/sys/fs/cgroup/user.slice/user-%d.slice/%s.pressure",
