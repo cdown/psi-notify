@@ -34,7 +34,7 @@ typedef struct {
     Resource cpu;
     Resource memory;
     Resource io;
-    int update_interval;
+    unsigned int update_interval;
 } Config;
 
 static int config_reload_pending = 0; /* SIGHUP */
