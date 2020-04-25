@@ -67,17 +67,6 @@ char *get_pressure_file(char *resource) {
     return NULL;
 }
 
-static inline char *startswith(const char *s, const char *prefix) {
-    size_t l;
-
-    l = strlen(prefix);
-    if (strncmp(s, prefix, l) == 0) {
-        return (char *)s + l;
-    }
-
-    return NULL;
-}
-
 #define CONFIG_LINE_MAX 256
 
 void update_threshold(Config *c, const char *line) {
@@ -307,8 +296,15 @@ void notify(const char *resource) {
     g_object_unref(n);
 }
 
+static const char *strnull(const char *s) { return s ?: "(null)"; }
+
 int main(void) {
     Config *config = init_config();
+
+    printf("Pressure paths:\n");
+    printf("- CPU:    %s\n", strnull(config->cpu.filename));
+    printf("- Memory: %s\n", strnull(config->memory.filename));
+    printf("- I/O:    %s\n", strnull(config->io.filename));
 
     notify_init("psi-notify");
 
