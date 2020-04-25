@@ -231,6 +231,44 @@ Config *init_config(void) {
  */
 #define PRESSURE_LINE_LEN 64
 
+int _check_pressures(FILE *f, Resource *r) {
+    char *start;
+    char line[PRESSURE_LINE_LEN];
+    char type[CONFIG_LINE_MAX];
+    float ten, sixty, three_hundred;
+    int ret = 0;
+
+    start = fgets(line, sizeof(line), f);
+    if (!start) {
+        fprintf(stderr, "Premature EOF from %s\n", r->filename);
+        return -EINVAL;
+    }
+
+    ret = sscanf(line, "%s avg10=%f avg60=%f avg300=%f total=%*s", type, &ten,
+                 &sixty, &three_hundred);
+    if (ret != 4) {
+        fprintf(stderr, "Can't parse from %s: %s\n", r->filename, line);
+        return -EINVAL;
+    }
+
+    if (strcmp("some", type) == 0) {
+        return (
+            (r->thresholds.ten.some && ten > r->thresholds.ten.some) ||
+            (r->thresholds.sixty.some && sixty > r->thresholds.sixty.some) ||
+            (r->thresholds.three_hundred.some &&
+             three_hundred > r->thresholds.three_hundred.some));
+    } else if (strcmp("full", type) == 0) {
+        return (
+            (r->thresholds.ten.full && ten > r->thresholds.ten.full) ||
+            (r->thresholds.sixty.full && sixty > r->thresholds.sixty.full) ||
+            (r->thresholds.three_hundred.full &&
+             three_hundred > r->thresholds.three_hundred.full));
+    }
+
+    fprintf(stderr, "Invalid type: %s\n", type);
+    return -EINVAL;
+}
+
 /*
  * >0: Above thresholds
  *  0: Within thresholds
@@ -238,10 +276,7 @@ Config *init_config(void) {
  */
 int check_pressures(Resource *r, int has_full) {
     FILE *f;
-    char line[PRESSURE_LINE_LEN];
     int ret = 0;
-    char *start;
-    float ten, sixty, three_hundred;
 
     if (!r->filename) {
         return 0;
@@ -255,26 +290,8 @@ int check_pressures(Resource *r, int has_full) {
         goto out;
     }
 
-    start = fgets(line, sizeof(line), f);
-    if (!start) {
-        fprintf(stderr, "Premature EOF from %s\n", r->filename);
-        ret = -EINVAL;
-        goto out;
-    }
-
-    ret = sscanf(line, "%*s avg10=%f avg60=%f avg300=%f total=%*s", &ten,
-                 &sixty, &three_hundred);
-    if (ret != 3) {
-        fprintf(stderr, "Can't parse 'some' from %s\n", r->filename);
-        ret = -EINVAL;
-        goto out;
-    }
-
-    if ((r->thresholds.ten.some && ten > r->thresholds.ten.some) ||
-        (r->thresholds.sixty.some && sixty > r->thresholds.sixty.some) ||
-        (r->thresholds.three_hundred.some &&
-         three_hundred > r->thresholds.three_hundred.some)) {
-        ret = 1;
+    ret = _check_pressures(f, r);
+    if (ret) {
         goto out;
     }
 
@@ -283,26 +300,8 @@ int check_pressures(Resource *r, int has_full) {
         goto out;
     }
 
-    start = fgets(line, sizeof(line), f);
-    if (!start) {
-        fprintf(stderr, "Premature EOF from %s\n", r->filename);
-        ret = -EINVAL;
-        goto out;
-    }
-
-    ret = sscanf(line, "%*s avg10=%f avg60=%f avg300=%f total=%*s", &ten,
-                 &sixty, &three_hundred);
-    if (ret != 3) {
-        fprintf(stderr, "Can't parse 'full' from %s\n", r->filename);
-        ret = -EINVAL;
-        goto out;
-    }
-
-    if ((r->thresholds.ten.full && ten > r->thresholds.ten.full) ||
-        (r->thresholds.sixty.full && sixty > r->thresholds.sixty.full) ||
-        (r->thresholds.three_hundred.full &&
-         three_hundred > r->thresholds.three_hundred.full)) {
-        ret = 1;
+    ret = _check_pressures(f, r);
+    if (ret) {
         goto out;
     }
 
