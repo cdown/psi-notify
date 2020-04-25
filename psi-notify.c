@@ -1,5 +1,3 @@
-/* gcc psi-notify.c `pkg-config --cflags --libs libnotify` -o psi-notify */
-
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
