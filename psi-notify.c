@@ -158,6 +158,11 @@ void update_config(Config *c) {
     char config_path[PATH_MAX];
     FILE *f;
 
+    if (!pw) {
+        fprintf(stderr, "Missing user in passwd\n");
+        abort();
+    }
+
     /* defaults */
     memset(&c->cpu.thresholds, 0, sizeof(c->cpu.thresholds));
     memset(&c->memory.thresholds, 0, sizeof(c->memory.thresholds));
