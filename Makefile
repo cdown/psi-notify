@@ -1,4 +1,4 @@
-CFLAGS=-g -Wall -Wextra -Werror $(shell pkg-config --cflags libnotify)
+CFLAGS=-Wall -Wextra -Werror -O2 $(shell pkg-config --cflags libnotify)
 LDFLAGS=$(shell pkg-config --libs libnotify)
 
 SOURCES=$(wildcard *.c)
