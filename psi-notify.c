@@ -160,6 +160,10 @@ void update_config(Config *c) {
     }
 
     while (fgets(line, sizeof(line), f)) {
+        int ret;
+        char lvalue[CONFIG_LINE_MAX];
+        int rvalue;
+
         if (is_blank(line)) {
             continue;
         }
@@ -168,25 +172,20 @@ void update_config(Config *c) {
             continue;
         }
 
-        if (startswith(line, "threshold ")) {
+        ret = sscanf(line, "%s", lvalue);
+        if (ret != 1) {
+            fprintf(stderr, "Invalid config line, ignoring: %s", line);
+            continue;
+        }
+
+        if (strcmp(lvalue, "threshold") == 0) {
             update_threshold(c, line);
-        } else {
-            int ret;
-            char lvalue[CONFIG_LINE_MAX];
-            int rvalue;
-
+        } else if (strcmp(lvalue, "update") == 0) {
             ret = sscanf(line, "%s %d", lvalue, &rvalue);
-            if (ret != 2) {
-                fprintf(stderr, "Invalid config line, ignoring: %s", line);
-                continue;
-            }
-
-            if (strcmp(lvalue, "update") == 0) {
-                c->update_interval = rvalue;
-            } else {
-                fprintf(stderr, "Invalid config line, ignoring: %s", line);
-                continue;
-            }
+            c->update_interval = rvalue;
+        } else {
+            fprintf(stderr, "Invalid config line, ignoring: %s", line);
+            continue;
         }
     }
 }
