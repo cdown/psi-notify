@@ -32,6 +32,25 @@ typedef struct {
     int update_interval;
 } Config;
 
+static int config_reload_pending = 0; /* SIGHUP */
+
+void sighup_handler(int sig) {
+    assert(sig == SIGHUP);
+    config_reload_pending = 1;
+}
+
+void configure_sighup_handler(void) {
+    const struct sigaction sighup = {
+        .sa_handler = sighup_handler,
+        .sa_flags = SA_RESTART,
+    };
+
+    if (sigaction(SIGHUP, &sighup, NULL) < 0) {
+        perror("sigaction");
+        abort();
+    }
+}
+
 char *get_pressure_file(char *resource) {
     char *path;
 
@@ -138,6 +157,12 @@ void update_config(Config *c) {
     char config_path[PATH_MAX];
     FILE *f;
 
+    /* defaults */
+    memset(&c->cpu.thresholds, 0, sizeof(c->cpu.thresholds));
+    memset(&c->memory.thresholds, 0, sizeof(c->memory.thresholds));
+    memset(&c->io.thresholds, 0, sizeof(c->io.thresholds));
+    c->update_interval = 10;
+
     (void)snprintf(config_path, PATH_MAX, "%s/.config/psi-notify", pw->pw_dir);
 
     f = fopen(config_path, "r");
@@ -189,7 +214,6 @@ Config *init_config(void) {
     c->cpu.filename = get_pressure_file("cpu");
     c->memory.filename = get_pressure_file("memory");
     c->io.filename = get_pressure_file("io");
-    c->update_interval = 10;
 
     update_config(c);
 
@@ -317,6 +341,7 @@ int main(void) {
     printf("- Memory: %s\n", strnull(config->memory.filename));
     printf("- I/O:    %s\n", strnull(config->io.filename));
 
+    configure_sighup_handler();
     notify_init("psi-notify");
 
     /*
@@ -326,6 +351,12 @@ int main(void) {
      * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
      */
     while (1) {
+        if (config_reload_pending) {
+            update_config(config);
+            printf("Config reloaded.\n");
+            config_reload_pending = 0;
+        }
+
         if (check_pressures(&config->cpu, 0) > 0) {
             notify("CPU");
         }
