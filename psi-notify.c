@@ -323,7 +323,7 @@ static void notify(const char *resource) {
     g_object_unref(n);
 }
 
-static const char *strnull(const char *s) { return s ?: "(null)"; }
+static const char *strnull(const char *s) { return s ? s : "(null)"; }
 
 int main(void) {
     Config *config = init_config();
