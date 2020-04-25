@@ -1,5 +1,13 @@
-A minimal unprivileged notifier for system-wide resource pressure using
-[PSI](https://facebookmicrosites.github.io/psi/).
+psi-notify is a minimal unprivileged notifier for system-wide resource pressure
+using [PSI](https://facebookmicrosites.github.io/psi/).
+
+## Features
+
+- Runs unprivileged
+- Low resource usage:
+   - Anonymous memory usage typically less than 40kB
+   - Almost zero CPU usage
+- Config reload without restart with `SIGHUP`
 
 ## Requirements
 
