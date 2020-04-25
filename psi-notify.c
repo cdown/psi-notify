@@ -237,6 +237,8 @@ Config *init_config(void) {
  */
 #define PRESSURE_LINE_LEN 64
 
+#define COMPARE_THRESH(threshold, current) (threshold && current > threshold)
+
 int _check_pressures(FILE *f, Resource *r) {
     char *start;
     char line[PRESSURE_LINE_LEN];
@@ -258,17 +260,13 @@ int _check_pressures(FILE *f, Resource *r) {
     }
 
     if (strcmp("some", type) == 0) {
-        return (
-            (r->thresholds.ten.some && ten > r->thresholds.ten.some) ||
-            (r->thresholds.sixty.some && sixty > r->thresholds.sixty.some) ||
-            (r->thresholds.three_hundred.some &&
-             three_hundred > r->thresholds.three_hundred.some));
+        return COMPARE_THRESH(r->thresholds.ten.some, ten) ||
+               COMPARE_THRESH(r->thresholds.sixty.some, sixty) ||
+               COMPARE_THRESH(r->thresholds.three_hundred.some, three_hundred);
     } else if (strcmp("full", type) == 0) {
-        return (
-            (r->thresholds.ten.full && ten > r->thresholds.ten.full) ||
-            (r->thresholds.sixty.full && sixty > r->thresholds.sixty.full) ||
-            (r->thresholds.three_hundred.full &&
-             three_hundred > r->thresholds.three_hundred.full));
+        return COMPARE_THRESH(r->thresholds.ten.full, ten) ||
+               COMPARE_THRESH(r->thresholds.sixty.full, sixty) ||
+               COMPARE_THRESH(r->thresholds.three_hundred.full, three_hundred);
     }
 
     fprintf(stderr, "Invalid type: %s\n", type);
