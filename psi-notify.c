@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <libnotify/notify.h>
@@ -8,6 +7,12 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#define expect(x)                                                              \
+    if (!(x)) {                                                                \
+        fprintf(stderr, "FATAL: !(%s) at %s:%d\n", #x, __FILE__, __LINE__);    \
+        abort();                                                               \
+    }
 
 typedef struct {
     float some;
@@ -35,7 +40,7 @@ typedef struct {
 static int config_reload_pending = 0; /* SIGHUP */
 
 void sighup_handler(int sig) {
-    assert(sig == SIGHUP);
+    expect(sig == SIGHUP);
     config_reload_pending = 1;
 }
 
@@ -44,22 +49,14 @@ void configure_sighup_handler(void) {
         .sa_handler = sighup_handler,
         .sa_flags = SA_RESTART,
     };
-
-    if (sigaction(SIGHUP, &sighup, NULL) < 0) {
-        perror("sigaction");
-        abort();
-    }
+    expect(sigaction(SIGHUP, &sighup, NULL) >= 0);
 }
 
 char *get_pressure_file(char *resource) {
     char *path;
 
     path = malloc(PATH_MAX);
-
-    if (!path) {
-        perror("malloc");
-        abort();
-    }
+    expect(path);
 
     /*
      * If we have a logind seat for this user, use the pressure stats for that
@@ -158,10 +155,7 @@ void update_config(Config *c) {
     char config_path[PATH_MAX];
     FILE *f;
 
-    if (!pw) {
-        fprintf(stderr, "Missing user in passwd\n");
-        abort();
-    }
+    expect(pw);
 
     /* defaults */
     memset(&c->cpu.thresholds, 0, sizeof(c->cpu.thresholds));
@@ -172,10 +166,7 @@ void update_config(Config *c) {
     (void)snprintf(config_path, PATH_MAX, "%s/.config/psi-notify", pw->pw_dir);
 
     f = fopen(config_path, "r");
-    if (!f) {
-        perror(config_path);
-        exit(1);
-    }
+    expect(f);
 
     while (fgets(line, sizeof(line), f)) {
         int ret;
@@ -212,10 +203,7 @@ Config *init_config(void) {
     Config *c;
 
     c = calloc(1, sizeof(Config));
-    if (!c) {
-        perror("calloc");
-        abort();
-    }
+    expect(c);
 
     c->cpu.filename = get_pressure_file("cpu");
     c->memory.filename = get_pressure_file("memory");
@@ -288,6 +276,7 @@ int check_pressures(Resource *r, int has_full) {
 
     f = fopen(r->filename, "r");
 
+    /* Not expect(), since the file might legitimately go away */
     if (!f) {
         perror(r->filename);
         ret = -EINVAL;
@@ -323,7 +312,7 @@ void notify(const char *resource) {
     char *title = alloca(TITLE_MAX);
     NotifyNotification *n;
 
-    assert(notify_is_initted());
+    expect(notify_is_initted());
 
     (void)snprintf(title, TITLE_MAX, "High %s pressure!", resource);
 
