@@ -5,3 +5,6 @@ SOURCES=$(wildcard *.c)
 EXECUTABLES=$(patsubst %.c,%,$(SOURCES))
 
 all: $(EXECUTABLES)
+
+clean:
+	-rm -f $(EXECUTABLES)
