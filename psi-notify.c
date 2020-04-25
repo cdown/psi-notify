@@ -39,12 +39,12 @@ typedef struct {
 
 static int config_reload_pending = 0; /* SIGHUP */
 
-void sighup_handler(int sig) {
+static void sighup_handler(int sig) {
     expect(sig == SIGHUP);
     config_reload_pending = 1;
 }
 
-void configure_sighup_handler(void) {
+static void configure_sighup_handler(void) {
     const struct sigaction sighup = {
         .sa_handler = sighup_handler,
         .sa_flags = SA_RESTART,
@@ -52,7 +52,7 @@ void configure_sighup_handler(void) {
     expect(sigaction(SIGHUP, &sighup, NULL) >= 0);
 }
 
-char *get_pressure_file(char *resource) {
+static char *get_pressure_file(char *resource) {
     char *path;
 
     path = malloc(PATH_MAX);
@@ -84,7 +84,7 @@ char *get_pressure_file(char *resource) {
 
 #define CONFIG_LINE_MAX 256
 
-void update_threshold(Config *c, const char *line) {
+static void update_threshold(Config *c, const char *line) {
     int ret;
     char resource[CONFIG_LINE_MAX], type[CONFIG_LINE_MAX],
         interval[CONFIG_LINE_MAX];
@@ -143,13 +143,13 @@ void update_threshold(Config *c, const char *line) {
     }
 }
 
-int is_blank(const char *s) {
+static int is_blank(const char *s) {
     while (isspace((unsigned char)*s))
         s++;
     return *s == '\0';
 }
 
-void update_config(Config *c) {
+static void update_config(Config *c) {
     struct passwd *pw = getpwuid(getuid());
     char line[CONFIG_LINE_MAX];
     char config_path[PATH_MAX];
@@ -199,7 +199,7 @@ void update_config(Config *c) {
     }
 }
 
-Config *init_config(void) {
+static Config *init_config(void) {
     Config *c;
 
     c = calloc(1, sizeof(Config));
@@ -227,7 +227,7 @@ Config *init_config(void) {
 
 #define COMPARE_THRESH(threshold, current) (threshold && current > threshold)
 
-int _check_pressures(FILE *f, Resource *r) {
+static int _check_pressures(FILE *f, Resource *r) {
     char *start;
     char line[PRESSURE_LINE_LEN];
     char type[CONFIG_LINE_MAX];
@@ -266,7 +266,7 @@ int _check_pressures(FILE *f, Resource *r) {
  *  0: Within thresholds
  * <0: Error
  */
-int check_pressures(Resource *r, int has_full) {
+static int check_pressures(Resource *r, int has_full) {
     FILE *f;
     int ret = 0;
 
@@ -308,7 +308,7 @@ out:
 
 #define TITLE_MAX 32
 
-void notify(const char *resource) {
+static void notify(const char *resource) {
     char *title = alloca(TITLE_MAX);
     NotifyNotification *n;
 
