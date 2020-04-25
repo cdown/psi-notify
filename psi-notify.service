@@ -1,0 +1,8 @@
+[Service]
+ExecStart=/usr/bin/psi-notify
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+Environment=DISPLAY=:0
+
+[Install]
+WantedBy=default.target
