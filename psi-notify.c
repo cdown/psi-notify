@@ -215,7 +215,7 @@ Config *init_config(void) {
 int check_pressures(Resource *r, int has_full) {
     FILE *f;
     char line[PRESSURE_LINE_LEN];
-    int ret;
+    int ret = 0;
     char *start;
     float ten, sixty, three_hundred;
 
@@ -227,54 +227,67 @@ int check_pressures(Resource *r, int has_full) {
 
     if (!f) {
         perror(r->filename);
-        return -EINVAL;
+        ret = -EINVAL;
+        goto out;
     }
 
     start = fgets(line, sizeof(line), f);
     if (!start) {
         fprintf(stderr, "Premature EOF from %s\n", r->filename);
-        return -EINVAL;
+        ret = -EINVAL;
+        goto out;
     }
 
     ret = sscanf(line, "%*s avg10=%f avg60=%f avg300=%f total=%*s", &ten,
                  &sixty, &three_hundred);
     if (ret != 3) {
         fprintf(stderr, "Can't parse 'some' from %s\n", r->filename);
-        return -EINVAL;
+        ret = -EINVAL;
+        goto out;
     }
 
     if ((r->thresholds.ten.some && ten > r->thresholds.ten.some) ||
         (r->thresholds.sixty.some && sixty > r->thresholds.sixty.some) ||
         (r->thresholds.three_hundred.some &&
          three_hundred > r->thresholds.three_hundred.some)) {
-        return 1;
+        ret = 1;
+        goto out;
     }
 
     if (!has_full) {
-        return 0;
+        ret = 0;
+        goto out;
     }
 
     start = fgets(line, sizeof(line), f);
     if (!start) {
         fprintf(stderr, "Premature EOF from %s\n", r->filename);
-        return -EINVAL;
+        ret = -EINVAL;
+        goto out;
     }
 
     ret = sscanf(line, "%*s avg10=%f avg60=%f avg300=%f total=%*s", &ten,
                  &sixty, &three_hundred);
     if (ret != 3) {
         fprintf(stderr, "Can't parse 'full' from %s\n", r->filename);
-        return -EINVAL;
+        ret = -EINVAL;
+        goto out;
     }
 
     if ((r->thresholds.ten.full && ten > r->thresholds.ten.full) ||
         (r->thresholds.sixty.full && sixty > r->thresholds.sixty.full) ||
         (r->thresholds.three_hundred.full &&
          three_hundred > r->thresholds.three_hundred.full)) {
-        return 1;
+        ret = 1;
+        goto out;
     }
 
-    return 0;
+    ret = 0;
+
+out:
+    if (f)
+        fclose(f);
+    return ret;
 }
 
 #define TITLE_MAX 32
