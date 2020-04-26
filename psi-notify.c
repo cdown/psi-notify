@@ -9,10 +9,13 @@
 #include <unistd.h>
 
 #define expect(x)                                                              \
-    if (!(x)) {                                                                \
-        fprintf(stderr, "FATAL: !(%s) at %s:%d\n", #x, __FILE__, __LINE__);    \
-        abort();                                                               \
-    }
+    do {                                                                       \
+        if (!(x)) {                                                            \
+            fprintf(stderr, "FATAL: !(%s) at %s:%d\n", #x, __FILE__,           \
+                    __LINE__);                                                 \
+            abort();                                                           \
+        }                                                                      \
+    } while (0)
 
 typedef struct {
     float some;
