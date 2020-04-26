@@ -174,7 +174,7 @@ static void update_config(Config *c) {
     while (fgets(line, sizeof(line), f)) {
         int ret;
         char lvalue[CONFIG_LINE_MAX];
-        int rvalue;
+        unsigned int rvalue;
 
         if (is_blank(line)) {
             continue;
