@@ -333,7 +333,7 @@ int main(void) {
     Config *config = init_config();
 
     configure_sighup_handler();
-    notify_init("psi-notify");
+    expect(notify_init("psi-notify"));
 
     /*
      * TODO: If discussion on unprivileged PSI poll() support upstream ends up
