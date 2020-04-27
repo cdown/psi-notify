@@ -40,7 +40,7 @@ typedef struct {
     unsigned int update_interval;
 } Config;
 
-static int config_reload_pending = 0; /* SIGHUP */
+static volatile sig_atomic_t config_reload_pending = 0; /* SIGHUP */
 
 static void sighup_handler(int sig) {
     expect(sig == SIGHUP);
