@@ -18,8 +18,8 @@
     } while (0)
 
 typedef struct {
-    float some;
-    float full;
+    double some;
+    double full;
 } TimeResourcePressure;
 
 typedef struct {
@@ -91,19 +91,19 @@ static void update_threshold(Config *c, const char *line) {
     int ret;
     char resource[CONFIG_LINE_MAX], type[CONFIG_LINE_MAX],
         interval[CONFIG_LINE_MAX];
-    float threshold;
+    double threshold;
     Resource *r;
     TimeResourcePressure *t;
 
-    ret = sscanf(line, "%*s %s %s %s %f", resource, type, interval, &threshold);
+    ret =
+        sscanf(line, "%*s %s %s %s %lf", resource, type, interval, &threshold);
     if (ret != 4) {
         fprintf(stderr, "Invalid threshold, ignoring: %s", line);
         return;
     }
 
-    if (!threshold) {
-        fprintf(stderr,
-                "Zero threshold for %s::%s::%s disables checks, ignoring: %f\n",
+    if (threshold < 0) {
+        fprintf(stderr, "Invalid threshold for %s::%s::%s, ignoring: %f\n",
                 resource, type, interval, threshold);
         return;
     }
@@ -160,10 +160,10 @@ static void update_config(Config *c) {
 
     expect(pw);
 
-    /* defaults */
-    memset(&c->cpu.thresholds, 0, sizeof(c->cpu.thresholds));
-    memset(&c->memory.thresholds, 0, sizeof(c->memory.thresholds));
-    memset(&c->io.thresholds, 0, sizeof(c->io.thresholds));
+    /* defaults should be <0 */
+    memset(&c->cpu.thresholds, -1, sizeof(c->cpu.thresholds));
+    memset(&c->memory.thresholds, -1, sizeof(c->memory.thresholds));
+    memset(&c->io.thresholds, -1, sizeof(c->io.thresholds));
     c->update_interval = 10;
 
     (void)snprintf(config_path, PATH_MAX, "%s/.config/psi-notify", pw->pw_dir);
@@ -228,13 +228,14 @@ static Config *init_config(void) {
  */
 #define PRESSURE_LINE_LEN 64
 
-#define COMPARE_THRESH(threshold, current) (threshold && current > threshold)
+#define COMPARE_THRESH(threshold, current)                                     \
+    (threshold >= 0 && current > threshold)
 
 static int _check_pressures(FILE *f, Resource *r) {
     char *start;
     char line[PRESSURE_LINE_LEN];
     char type[CONFIG_LINE_MAX];
-    float ten, sixty, three_hundred;
+    double ten, sixty, three_hundred;
     int ret = 0;
 
     start = fgets(line, sizeof(line), f);
@@ -243,8 +244,8 @@ static int _check_pressures(FILE *f, Resource *r) {
         return -EINVAL;
     }
 
-    ret = sscanf(line, "%s avg10=%f avg60=%f avg300=%f total=%*s", type, &ten,
-                 &sixty, &three_hundred);
+    ret = sscanf(line, "%s avg10=%lf avg60=%lf avg300=%lf total=%*s", type,
+                 &ten, &sixty, &three_hundred);
     if (ret != 4) {
         fprintf(stderr, "Can't parse from %s: %s\n", r->filename, line);
         return -EINVAL;
