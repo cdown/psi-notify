@@ -204,11 +204,8 @@ static void update_config(Config *c) {
     fclose(f);
 }
 
-static Config *init_config(void) {
-    Config *c;
-
-    c = calloc(1, sizeof(Config));
-    expect(c);
+static Config *init_config(Config *c) {
+    memset(c, 0, sizeof(Config));
 
     c->cpu.filename = get_pressure_file("cpu");
     c->memory.filename = get_pressure_file("memory");
@@ -332,8 +329,9 @@ static void notify(const char *resource) {
 #define strnull(s) ((s) ? (s) : "(null)")
 
 int main(void) {
-    Config *config = init_config();
+    Config config;
 
+    init_config(&config);
     configure_sighup_handler();
     expect(notify_init("psi-notify"));
 
@@ -344,24 +342,24 @@ int main(void) {
      * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
      */
     while (1) {
-        if (check_pressures(&config->cpu, 0) > 0) {
+        if (check_pressures(&config.cpu, 0) > 0) {
             notify("CPU");
         }
 
-        if (check_pressures(&config->memory, 1) > 0) {
+        if (check_pressures(&config.memory, 1) > 0) {
             notify("memory");
         }
 
-        if (check_pressures(&config->io, 1) > 0) {
+        if (check_pressures(&config.io, 1) > 0) {
             notify("I/O");
         }
 
         if (config_reload_pending) {
-            update_config(config);
+            update_config(&config);
             printf("Config reloaded.\n");
             config_reload_pending = 0;
         } else {
-            sleep(config->update_interval);
+            sleep(config.update_interval);
         }
     }
 }
