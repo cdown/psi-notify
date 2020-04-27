@@ -160,10 +160,10 @@ static void update_config(Config *c) {
 
     expect(pw);
 
-    /* defaults should be <0 */
-    memset(&c->cpu.thresholds, -1, sizeof(c->cpu.thresholds));
-    memset(&c->memory.thresholds, -1, sizeof(c->memory.thresholds));
-    memset(&c->io.thresholds, -1, sizeof(c->io.thresholds));
+    /* -nan */
+    memset(&c->cpu.thresholds, 0xff, sizeof(c->cpu.thresholds));
+    memset(&c->memory.thresholds, 0xff, sizeof(c->memory.thresholds));
+    memset(&c->io.thresholds, 0xff, sizeof(c->io.thresholds));
     c->update_interval = 10;
 
     (void)snprintf(config_path, PATH_MAX, "%s/.config/psi-notify", pw->pw_dir);
