@@ -29,7 +29,7 @@ typedef struct {
 } Pressure;
 
 typedef struct {
-    char *filename;
+    const char *filename;
     Pressure thresholds;
 } Resource;
 
