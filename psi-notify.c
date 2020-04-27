@@ -332,11 +332,6 @@ static void notify(const char *resource) {
 int main(void) {
     Config *config = init_config();
 
-    printf("Pressure paths:\n");
-    printf("- CPU:    %s\n", strnull(config->cpu.filename));
-    printf("- Memory: %s\n", strnull(config->memory.filename));
-    printf("- I/O:    %s\n\n", strnull(config->io.filename));
-
     configure_sighup_handler();
     notify_init("psi-notify");
 
