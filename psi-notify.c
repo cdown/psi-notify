@@ -312,7 +312,7 @@ out:
 #define TITLE_MAX 32
 
 static void notify(const char *resource) {
-    char *title = alloca(TITLE_MAX);
+    char title[TITLE_MAX];
     NotifyNotification *n;
 
     expect(notify_is_initted());
