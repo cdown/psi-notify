@@ -318,8 +318,8 @@ static void notify(const char *resource) {
 
     expect(notify_is_initted());
 
+    printf("Sending %s notification\n", resource);
     (void)snprintf(title, TITLE_MAX, "High %s pressure!", resource);
-
     n = notify_notification_new(
         title, "Consider reducing demand on this resource.", NULL);
     notify_notification_set_urgency(n, NOTIFY_URGENCY_CRITICAL);
@@ -335,7 +335,7 @@ int main(void) {
     printf("Pressure paths:\n");
     printf("- CPU:    %s\n", strnull(config->cpu.filename));
     printf("- Memory: %s\n", strnull(config->memory.filename));
-    printf("- I/O:    %s\n", strnull(config->io.filename));
+    printf("- I/O:    %s\n\n", strnull(config->io.filename));
 
     configure_sighup_handler();
     notify_init("psi-notify");
