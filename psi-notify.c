@@ -344,12 +344,6 @@ int main(void) {
      * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
      */
     while (1) {
-        if (config_reload_pending) {
-            update_config(config);
-            printf("Config reloaded.\n");
-            config_reload_pending = 0;
-        }
-
         if (check_pressures(&config->cpu, 0) > 0) {
             notify("CPU");
         }
@@ -362,7 +356,11 @@ int main(void) {
             notify("I/O");
         }
 
-        if (!config_reload_pending) {
+        if (config_reload_pending) {
+            update_config(config);
+            printf("Config reloaded.\n");
+            config_reload_pending = 0;
+        } else {
             sleep(config->update_interval);
         }
     }
