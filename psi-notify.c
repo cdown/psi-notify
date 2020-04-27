@@ -360,6 +360,8 @@ int main(void) {
             notify("I/O");
         }
 
-        sleep(config->update_interval);
+        if (!config_reload_pending) {
+            sleep(config->update_interval);
+        }
     }
 }
