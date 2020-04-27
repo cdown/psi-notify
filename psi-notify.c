@@ -200,6 +200,8 @@ static void update_config(Config *c) {
             continue;
         }
     }
+
+    fclose(f);
 }
 
 static Config *init_config(void) {
