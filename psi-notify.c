@@ -29,7 +29,7 @@ typedef struct {
 } Pressure;
 
 typedef struct {
-    const char *filename;
+    char *filename;
     Pressure thresholds;
 } Resource;
 
@@ -41,18 +41,29 @@ typedef struct {
 } Config;
 
 static volatile sig_atomic_t config_reload_pending = 0; /* SIGHUP */
+static volatile sig_atomic_t run = 1;                   /* SIGTERM, SIGINT */
 
 static void sighup_handler(int sig) {
-    expect(sig == SIGHUP);
+    (void)sig;
     config_reload_pending = 1;
 }
 
-static void configure_sighup_handler(void) {
-    const struct sigaction sighup = {
+static void exit_sig_handler(int sig) {
+    (void)sig;
+    run = 0;
+}
+
+static void configure_signal_handlers(void) {
+    const struct sigaction sa_hup = {
         .sa_handler = sighup_handler,
         .sa_flags = SA_RESTART,
     };
-    expect(sigaction(SIGHUP, &sighup, NULL) >= 0);
+    const struct sigaction sa_exit = {
+        .sa_handler = exit_sig_handler,
+    };
+    expect(sigaction(SIGHUP, &sa_hup, NULL) >= 0);
+    expect(sigaction(SIGTERM, &sa_exit, NULL) >= 0);
+    expect(sigaction(SIGINT, &sa_exit, NULL) >= 0);
 }
 
 static char *get_pressure_file(char *resource) {
@@ -326,13 +337,20 @@ static void notify(const char *resource) {
     g_object_unref(n);
 }
 
+static void teardown(Config *c) {
+    free(c->cpu.filename);
+    free(c->memory.filename);
+    free(c->io.filename);
+    notify_uninit();
+}
+
 #define strnull(s) ((s) ? (s) : "(null)")
 
 int main(void) {
     Config config;
 
     init_config(&config);
-    configure_sighup_handler();
+    configure_signal_handlers();
     expect(notify_init("psi-notify"));
 
     /*
@@ -341,7 +359,7 @@ int main(void) {
      *
      * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
      */
-    while (1) {
+    while (run) {
         if (check_pressures(&config.cpu, 0) > 0) {
             notify("CPU");
         }
@@ -358,8 +376,10 @@ int main(void) {
             update_config(&config);
             printf("Config reloaded.\n");
             config_reload_pending = 0;
-        } else {
+        } else if (run) {
             sleep(config.update_interval);
         }
     }
+
+    teardown(&config);
 }
