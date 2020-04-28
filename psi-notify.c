@@ -17,6 +17,14 @@
         }                                                                      \
     } while (0)
 
+typedef enum ResourceType {
+    RT_CPU,
+    RT_MEMORY,
+    RT_IO,
+    _RT_MAX,
+    _RT_INVALID = -1
+} ResourceType;
+
 typedef struct {
     double some;
     double full;
@@ -30,6 +38,9 @@ typedef struct {
 
 typedef struct {
     char *filename;
+    char *human_name;
+    unsigned int has_full;
+    ResourceType type;
     Pressure thresholds;
 } Resource;
 
@@ -42,6 +53,12 @@ typedef struct {
 
 static volatile sig_atomic_t config_reload_pending = 0; /* SIGHUP */
 static volatile sig_atomic_t run = 1;                   /* SIGTERM, SIGINT */
+
+/*
+ * A list of ResourceTypes that are already displaying last cycle, used so that
+ * we don't display them repeatedly for one event.
+ */
+static ResourceType active_res[_RT_MAX] = {_RT_INVALID};
 
 static void sighup_handler(int sig) {
     (void)sig;
@@ -220,8 +237,19 @@ static Config *init_config(Config *c) {
     memset(c, 0, sizeof(Config));
 
     c->cpu.filename = get_pressure_file("cpu");
+    c->cpu.type = RT_CPU;
+    c->cpu.human_name = "CPU";
+    c->memory.has_full = 0;
+
     c->memory.filename = get_pressure_file("memory");
+    c->memory.type = RT_MEMORY;
+    c->memory.human_name = "memory";
+    c->memory.has_full = 1;
+
     c->io.filename = get_pressure_file("io");
+    c->io.type = RT_IO;
+    c->io.human_name = "I/O";
+    c->io.has_full = 1;
 
     update_config(c);
 
@@ -281,7 +309,7 @@ static int _check_pressures(FILE *f, Resource *r) {
  *  0: Within thresholds
  * <0: Error
  */
-static int check_pressures(Resource *r, int has_full) {
+static int check_pressures(Resource *r) {
     FILE *f;
     int ret = 0;
 
@@ -303,7 +331,7 @@ static int check_pressures(Resource *r, int has_full) {
         goto out;
     }
 
-    if (!has_full) {
+    if (!r->has_full) {
         ret = 0;
         goto out;
     }
@@ -345,6 +373,71 @@ static void teardown(Config *c) {
     notify_uninit();
 }
 
+/* active_res is tiny, O(n) is fine. */
+#define for_each_active_res(i)                                                 \
+    for (i = 0; i < sizeof(active_res) / sizeof(active_res[0]); i++)
+
+/* 0 means already active, 1 means newly active. */
+static int mark_res_active(ResourceType rt) {
+    int free_slot = -1;
+    size_t i;
+
+    expect(rt != _RT_INVALID);
+
+    for_each_active_res(i) {
+        if (active_res[i] == rt) {
+            /* We already have an entry, nothing to do. */
+            return 0;
+        }
+
+        if (active_res[i] == _RT_INVALID) {
+            /* Keep going, because we still might already have an entry. */
+            free_slot = i;
+        }
+    }
+
+    expect(free_slot != -1); /* BUG: all slots used up? */
+    active_res[free_slot] = rt;
+
+    return 1;
+}
+
+/* 0 means already inactive, 1 means newly inactive. */
+static int mark_res_inactive(ResourceType rt) {
+    size_t i;
+
+    expect(rt != _RT_INVALID);
+
+    for_each_active_res(i) {
+        if (active_res[i] == rt) {
+            active_res[i] = _RT_INVALID;
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static void check_pressures_notify_if_new(Resource *r) {
+    int ret = check_pressures(r);
+
+    switch (ret) {
+    case 0:
+        mark_res_inactive(r->type);
+        break;
+    case 1:
+        if (mark_res_active(r->type) == 1) {
+            /* Newly active, send the notification. */
+            notify(r->human_name);
+        }
+        break;
+    default:
+        fprintf(stderr, "Error getting %s pressure: %s\n", r->human_name,
+                strerror(ret));
+        break;
+    }
+}
+
 #define strnull(s) ((s) ? (s) : "(null)")
 
 int main(void) {
@@ -361,17 +454,9 @@ int main(void) {
      * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
      */
     while (run) {
-        if (check_pressures(&config.cpu, 0) > 0) {
-            notify("CPU");
-        }
-
-        if (check_pressures(&config.memory, 1) > 0) {
-            notify("memory");
-        }
-
-        if (check_pressures(&config.io, 1) > 0) {
-            notify("I/O");
-        }
+        check_pressures_notify_if_new(&config.cpu);
+        check_pressures_notify_if_new(&config.memory);
+        check_pressures_notify_if_new(&config.io);
 
         if (config_reload_pending) {
             update_config(&config);
