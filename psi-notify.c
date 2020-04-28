@@ -77,14 +77,14 @@ static char *get_pressure_file(char *resource) {
      * seat's slice on cgroup v2. Otherwise, use the system-global pressure
      * stats.
      */
-    (void)snprintf(path, PATH_MAX,
-                   "/sys/fs/cgroup/user.slice/user-%d.slice/%s.pressure",
-                   getuid(), resource);
+    expect(snprintf(path, PATH_MAX,
+                    "/sys/fs/cgroup/user.slice/user-%d.slice/%s.pressure",
+                    getuid(), resource) > 0);
     if (access(path, R_OK) == 0) {
         return path;
     }
 
-    (void)snprintf(path, PATH_MAX, "/proc/pressure/%s", resource);
+    expect(snprintf(path, PATH_MAX, "/proc/pressure/%s", resource) > 0);
     if (access(path, R_OK) == 0) {
         return path;
     }
@@ -177,7 +177,8 @@ static void update_config(Config *c) {
     memset(&c->io.thresholds, 0xff, sizeof(c->io.thresholds));
     c->update_interval = 10;
 
-    (void)snprintf(config_path, PATH_MAX, "%s/.config/psi-notify", pw->pw_dir);
+    expect(snprintf(config_path, PATH_MAX, "%s/.config/psi-notify",
+                    pw->pw_dir) > 0);
 
     f = fopen(config_path, "r");
     expect(f);
@@ -329,11 +330,11 @@ static void notify(const char *resource) {
     expect(notify_is_initted());
 
     printf("Sending %s notification\n", resource);
-    (void)snprintf(title, TITLE_MAX, "High %s pressure!", resource);
+    expect(snprintf(title, TITLE_MAX, "High %s pressure!", resource) > 0);
     n = notify_notification_new(
         title, "Consider reducing demand on this resource.", NULL);
     notify_notification_set_urgency(n, NOTIFY_URGENCY_CRITICAL);
-    (void)notify_notification_show(n, NULL);
+    expect(notify_notification_show(n, NULL));
     g_object_unref(n);
 }
 
