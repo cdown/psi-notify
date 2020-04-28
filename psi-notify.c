@@ -205,7 +205,7 @@ static void update_config(Config *c) {
         if (strcmp(lvalue, "threshold") == 0) {
             update_threshold(c, line);
         } else if (strcmp(lvalue, "update") == 0) {
-            ret = sscanf(line, "%s %d", lvalue, &rvalue);
+            ret = sscanf(line, "%s %u", lvalue, &rvalue);
             c->update_interval = rvalue;
         } else {
             fprintf(stderr, "Invalid config line, ignoring: %s", line);
