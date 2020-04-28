@@ -55,10 +55,14 @@ static volatile sig_atomic_t config_reload_pending = 0; /* SIGHUP */
 static volatile sig_atomic_t run = 1;                   /* SIGTERM, SIGINT */
 
 /*
- * A list of ResourceTypes that are already displaying last cycle, used so that
- * we don't display them repeatedly for one event.
+ * A mapping from a ResourceType to a NotifyNotification*. If the pointer is
+ * set, this alert is currently active, and if it is NULL, it isn't.
  */
-static ResourceType active_res[_RT_MAX] = {_RT_INVALID};
+static NotifyNotification *active_notif[] = {
+    [RT_CPU] = NULL,
+    [RT_MEMORY] = NULL,
+    [RT_IO] = NULL,
+};
 
 static void sighup_handler(int sig) {
     (void)sig;
@@ -351,71 +355,65 @@ out:
 
 #define TITLE_MAX 32
 
-static void notify(const char *resource) {
+static NotifyNotification *notify_show(const char *resource) {
     char title[TITLE_MAX];
     NotifyNotification *n;
 
     expect(notify_is_initted());
 
-    printf("Sending %s notification\n", resource);
     expect(snprintf(title, TITLE_MAX, "High %s pressure!", resource) > 0);
     n = notify_notification_new(
         title, "Consider reducing demand on this resource.", NULL);
     notify_notification_set_urgency(n, NOTIFY_URGENCY_CRITICAL);
     expect(notify_notification_show(n, NULL));
-    g_object_unref(n);
+    return n;
+}
+
+static void notify_close_all(void) {
+    size_t i;
+    for (i = 0; i < sizeof(active_notif) / sizeof(active_notif[0]); i++) {
+        NotifyNotification *n = active_notif[i];
+        if (n) {
+            (void)notify_notification_close(n, NULL);
+        }
+    }
 }
 
 static void teardown(Config *c) {
     free(c->cpu.filename);
     free(c->memory.filename);
     free(c->io.filename);
+    notify_close_all();
     notify_uninit();
 }
 
-/* active_res is tiny, O(n) is fine. */
-#define for_each_active_res(i)                                                 \
-    for (i = 0; i < sizeof(active_res) / sizeof(active_res[0]); i++)
-
 /* 0 means already active, 1 means newly active. */
-static int mark_res_active(ResourceType rt) {
-    int free_slot = -1;
-    size_t i;
-
-    expect(rt != _RT_INVALID);
-
-    for_each_active_res(i) {
-        if (active_res[i] == rt) {
-            /* We already have an entry, nothing to do. */
-            return 0;
-        }
-
-        if (active_res[i] == _RT_INVALID) {
-            /* Keep going, because we still might already have an entry. */
-            free_slot = i;
-        }
+static int mark_res_active(Resource *r) {
+    if (active_notif[r->type]) {
+        /* We already have an active warning, nothing to do. */
+        return 0;
     }
 
-    expect(free_slot != -1); /* BUG: all slots used up? */
-    active_res[free_slot] = rt;
-
+    printf("%s warning: active\n", r->human_name);
+    active_notif[r->type] = notify_show(r->human_name);
     return 1;
 }
 
 /* 0 means already inactive, 1 means newly inactive. */
-static int mark_res_inactive(ResourceType rt) {
-    size_t i;
+static int mark_res_inactive(Resource *r) {
+    NotifyNotification *n = active_notif[r->type];
 
-    expect(rt != _RT_INVALID);
-
-    for_each_active_res(i) {
-        if (active_res[i] == rt) {
-            active_res[i] = _RT_INVALID;
-            return 1;
-        }
+    if (!n) {
+        /* Already inactive, nothing to do. */
+        return 0;
     }
 
-    return 0;
+    printf("%s warning: inactive\n", r->human_name);
+    (void)notify_notification_close(n, NULL);
+    active_notif[r->type] = NULL;
+    g_object_unref(n);
+
+    return 1;
 }
 
 static void check_pressures_notify_if_new(Resource *r) {
@@ -423,13 +421,10 @@ static void check_pressures_notify_if_new(Resource *r) {
 
     switch (ret) {
     case 0:
-        mark_res_inactive(r->type);
+        mark_res_inactive(r);
         break;
     case 1:
-        if (mark_res_active(r->type) == 1) {
-            /* Newly active, send the notification. */
-            notify(r->human_name);
-        }
+        mark_res_active(r);
         break;
     default:
         fprintf(stderr, "Error getting %s pressure: %s\n", r->human_name,
