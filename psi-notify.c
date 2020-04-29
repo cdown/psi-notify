@@ -259,6 +259,10 @@ static int update_config(Config *c) {
             update_threshold(c, line);
         } else if (strcmp(lvalue, "update") == 0) {
             ret = sscanf(line, "%s %u", lvalue, &rvalue);
+            if (ret != 2) {
+                fprintf(stderr, "Invalid config line, ignoring: %s", line);
+                continue;
+            }
             if (rvalue <= 0) {
                 fprintf(stderr, "Ignoring <= 0 update interval: %d\n", rvalue);
                 continue;
