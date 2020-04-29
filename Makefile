@@ -12,5 +12,8 @@ all: $(EXECUTABLES)
 
 clang: all
 
+clang-tidy: 
+	-clang-tidy psi-notify.c -checks=-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -- $(CFLAGS) $(LDFLAGS)
+
 clean:
 	-rm -f $(EXECUTABLES)
