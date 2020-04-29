@@ -494,6 +494,7 @@ static void check_pressures_notify_if_new(Resource *r) {
 int main(void) {
     Config config;
 
+    setvbuf(stdout, NULL, _IONBF, 0);
     init_config(&config);
     configure_signal_handlers();
     expect(notify_init("psi-notify"));
