@@ -14,7 +14,10 @@ they start to severely impact system responsiveness.
   Notifications](http://www.galago-project.org/specs/notification/0.9/index.html)
 - Active notification management: when thresholds clear, the notification
   automatically closes
-- Config reload without restart with `SIGHUP`
+- (Optional)
+  [`sd_notify`](https://www.freedesktop.org/software/systemd/man/sd_notify.html)
+  support for `Type=notify`
+- Reload configs without restarting using `SIGHUP`
 
 ## Requirements
 

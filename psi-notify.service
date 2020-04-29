@@ -1,4 +1,5 @@
 [Service]
+Type=notify
 ExecStart=/usr/bin/psi-notify
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always

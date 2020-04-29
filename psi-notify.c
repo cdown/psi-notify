@@ -8,6 +8,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#if __has_include(<systemd/sd-daemon.h>)
+#include <systemd/sd-daemon.h>
+#else
+#define sd_notify(reset_env, state)
+#endif
+
 #define expect(x)                                                              \
     do {                                                                       \
         if (!(x)) {                                                            \
@@ -499,16 +505,19 @@ int main(void) {
      * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
      */
     while (run) {
+        sd_notify(0, "READY=1\nSTATUS=Checking current pressures...");
         check_pressures_notify_if_new(&config.cpu);
         check_pressures_notify_if_new(&config.memory);
         check_pressures_notify_if_new(&config.io);
 
         if (config_reload_pending) {
+            sd_notify(0, "RELOADING=1\nSTATUS=Reloading config...");
             if (update_config(&config) == 0) {
                 printf("Config reloaded.\n");
             }
             config_reload_pending = 0;
         } else if (run) {
+            sd_notify(0, "STATUS=Waiting for next interval.");
             sleep(config.update_interval);
         }
     }
