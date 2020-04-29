@@ -178,6 +178,15 @@ static int is_blank(const char *s) {
     return *s == '\0';
 }
 
+static void reset_user_facing_config(Config *c) {
+    c->update_interval = 5;
+
+    /* -nan */
+    memset(&c->cpu.thresholds, 0xff, sizeof(c->cpu.thresholds));
+    memset(&c->memory.thresholds, 0xff, sizeof(c->memory.thresholds));
+    memset(&c->io.thresholds, 0xff, sizeof(c->io.thresholds));
+}
+
 static int update_config(Config *c) {
     struct passwd *pw = getpwuid(getuid());
     char line[CONFIG_LINE_MAX];
@@ -186,12 +195,6 @@ static int update_config(Config *c) {
     FILE *f;
 
     expect(pw);
-
-    /* -nan */
-    memset(&c->cpu.thresholds, 0xff, sizeof(c->cpu.thresholds));
-    memset(&c->memory.thresholds, 0xff, sizeof(c->memory.thresholds));
-    memset(&c->io.thresholds, 0xff, sizeof(c->io.thresholds));
-    c->update_interval = 5;
 
     xdg_config_dir = getenv("XDG_CONFIG_DIR");
 
@@ -205,7 +208,9 @@ static int update_config(Config *c) {
 
     f = fopen(config_path, "r");
 
-    if (!f) {
+    if (f) {
+        reset_user_facing_config(c);
+    } else {
         if (config_reload_pending) {
             /* This was from a SIGHUP, so we already have a config. Keep it. */
             fprintf(stderr,
@@ -221,6 +226,9 @@ static int update_config(Config *c) {
                     config_path, strerror(errno));
         }
 
+        reset_user_facing_config(c);
+
+        /* defaults */
         c->cpu.thresholds.ten.some = 50.00;
         c->memory.thresholds.ten.some = 10.00;
         c->io.thresholds.ten.some = 10.00;
@@ -251,6 +259,10 @@ static int update_config(Config *c) {
             update_threshold(c, line);
         } else if (strcmp(lvalue, "update") == 0) {
             ret = sscanf(line, "%s %u", lvalue, &rvalue);
+            if (rvalue <= 0) {
+                fprintf(stderr, "Ignoring <= 0 update interval: %d\n", rvalue);
+                continue;
+            }
             c->update_interval = rvalue;
         } else {
             fprintf(stderr, "Invalid config line, ignoring: %s", line);
@@ -259,6 +271,8 @@ static int update_config(Config *c) {
     }
 
     fclose(f);
+
+    expect(c->update_interval > 0);
 
     return 0;
 }
