@@ -8,8 +8,12 @@ they start to severely impact system responsiveness.
 
 - Runs unprivileged
 - Low resource usage:
-   - Anonymous memory usage typically less than 40kB
-   - Almost zero CPU usage
+  - Anonymous memory usage typically less than 40kB
+  - Almost zero CPU usage
+- Works with any notifier using [Desktop
+  Notifications](http://www.galago-project.org/specs/notification/0.9/index.html)
+- Active notification management: when thresholds clear, the notification
+  automatically closes
 - Config reload without restart with `SIGHUP`
 
 ## Requirements
