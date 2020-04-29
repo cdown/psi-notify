@@ -380,9 +380,11 @@ static NotifyNotification *notify_show(const char *resource) {
 static void notify_close_all(void) {
     size_t i;
     for (i = 0; i < sizeof(active_notif) / sizeof(active_notif[0]); i++) {
-        NotifyNotification *n = active_notif[i];
-        if (n) {
+        if (active_notif[i]) {
+            NotifyNotification *n = active_notif[i];
+            active_notif[i] = NULL;
             (void)notify_notification_close(n, NULL);
+            g_object_unref(n);
         }
     }
 }
