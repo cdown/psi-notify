@@ -182,6 +182,7 @@ static int update_config(Config *c) {
     struct passwd *pw = getpwuid(getuid());
     char line[CONFIG_LINE_MAX];
     char config_path[PATH_MAX];
+    char *xdg_config_dir;
     FILE *f;
 
     expect(pw);
@@ -192,8 +193,15 @@ static int update_config(Config *c) {
     memset(&c->io.thresholds, 0xff, sizeof(c->io.thresholds));
     c->update_interval = 5;
 
-    expect(snprintf(config_path, PATH_MAX, "%s/.config/psi-notify",
-                    pw->pw_dir) > 0);
+    xdg_config_dir = getenv("XDG_CONFIG_DIR");
+
+    if (xdg_config_dir) {
+        expect(snprintf(config_path, PATH_MAX, "%s/psi-notify",
+                        xdg_config_dir) > 0);
+    } else {
+        expect(snprintf(config_path, PATH_MAX, "%s/.config/psi-notify",
+                        pw->pw_dir) > 0);
+    }
 
     f = fopen(config_path, "r");
 
