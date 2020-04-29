@@ -6,10 +6,11 @@ EXECUTABLES=$(patsubst %.c,%,$(SOURCES))
 
 all: $(EXECUTABLES)
 
-# Noisy clang build that's expected to fail, but can be useful to find corner cases.
-clang: CC=clang
-clang: CFLAGS=-pedantic -Weverything -Werror $(shell pkg-config --cflags libnotify)
-clang: all
+# Noisy clang build that's expected to fail, but can be useful to find corner
+# cases.
+clang-everything: CC=clang
+clang-everything: CFLAGS+=-Weverything
+clang-everything: all
 
 sanitisers: CC=gcc
 sanitisers: CFLAGS+=-fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -ggdb
