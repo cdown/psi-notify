@@ -277,7 +277,7 @@ static Config *init_config(Config *c) {
 static int _check_pressures(FILE *f, Resource *r) {
     char *start;
     char line[PRESSURE_LINE_LEN];
-    char type[CONFIG_LINE_MAX];
+    char type[PRESSURE_LINE_LEN];
     double ten, sixty, three_hundred;
     int ret = 0;
 
