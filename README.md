@@ -21,6 +21,14 @@ they start to severely impact system responsiveness.
 - Linux 4.20+
 - libnotify
 
+## Installation
+
+Manual installation is as simply as running `make`. Make sure you have
+libnotify installed.
+
+On Arch, the [psi-notify AUR
+package](https://aur.archlinux.org/packages/psi-notify/) is available.
+
 ## Config
 
 Put your configuration in `~/.config/psi-notify`. Here's an example that will
