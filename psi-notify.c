@@ -443,8 +443,6 @@ static void check_pressures_notify_if_new(Resource *r) {
     }
 }
 
-#define strnull(s) ((s) ? (s) : "(null)")
-
 int main(void) {
     Config config;
 
