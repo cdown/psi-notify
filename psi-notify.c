@@ -17,13 +17,7 @@
         }                                                                      \
     } while (0)
 
-typedef enum ResourceType {
-    RT_CPU = 0,
-    RT_MEMORY,
-    RT_IO,
-    _RT_MAX,
-    _RT_INVALID = -1
-} ResourceType;
+typedef enum ResourceType { RT_CPU, RT_MEMORY, RT_IO } ResourceType;
 
 typedef struct {
     double some;
