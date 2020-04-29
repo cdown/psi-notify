@@ -178,7 +178,7 @@ static int is_blank(const char *s) {
     return *s == '\0';
 }
 
-static void update_config(Config *c) {
+static int update_config(Config *c) {
     struct passwd *pw = getpwuid(getuid());
     char line[CONFIG_LINE_MAX];
     char config_path[PATH_MAX];
@@ -190,13 +190,35 @@ static void update_config(Config *c) {
     memset(&c->cpu.thresholds, 0xff, sizeof(c->cpu.thresholds));
     memset(&c->memory.thresholds, 0xff, sizeof(c->memory.thresholds));
     memset(&c->io.thresholds, 0xff, sizeof(c->io.thresholds));
-    c->update_interval = 10;
+    c->update_interval = 5;
 
     expect(snprintf(config_path, PATH_MAX, "%s/.config/psi-notify",
                     pw->pw_dir) > 0);
 
     f = fopen(config_path, "r");
-    expect(f);
+
+    if (!f) {
+        if (config_reload_pending) {
+            /* This was from a SIGHUP, so we already have a config. Keep it. */
+            fprintf(stderr,
+                    "Config reload request ignored, cannot open %s: %s\n",
+                    config_path, strerror(errno));
+            return -errno;
+        }
+
+        if (errno == ENOENT) {
+            fprintf(stderr, "No config at %s, using defaults\n", config_path);
+        } else {
+            fprintf(stderr, "Using default config, cannot open %s: %s\n",
+                    config_path, strerror(errno));
+        }
+
+        c->cpu.thresholds.ten.some = 50.00;
+        c->memory.thresholds.ten.some = 10.00;
+        c->io.thresholds.ten.some = 10.00;
+
+        return -errno;
+    }
 
     while (fgets(line, sizeof(line), f)) {
         int ret;
@@ -229,6 +251,8 @@ static void update_config(Config *c) {
     }
 
     fclose(f);
+
+    return 0;
 }
 
 static Config *init_config(Config *c) {
@@ -249,7 +273,7 @@ static Config *init_config(Config *c) {
     c->io.human_name = "I/O";
     c->io.has_full = 1;
 
-    update_config(c);
+    (void)update_config(c);
 
     return c;
 }
@@ -454,8 +478,9 @@ int main(void) {
         check_pressures_notify_if_new(&config.io);
 
         if (config_reload_pending) {
-            update_config(&config);
-            printf("Config reloaded.\n");
+            if (update_config(&config) == 0) {
+                printf("Config reloaded.\n");
+            }
             config_reload_pending = 0;
         } else if (run) {
             sleep(config.update_interval);

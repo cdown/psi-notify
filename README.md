@@ -16,7 +16,7 @@ using [PSI](https://facebookmicrosites.github.io/psi/).
 
 ## Config
 
-Put your configuration in ~/.config/psi-notify. Here's an example that will
+Put your configuration in `~/.config/psi-notify`. Here's an example that will
 check roughly every 5 seconds⁺, and pop up a notification when the values are
 exceeded:
 
@@ -27,6 +27,8 @@ threshold cpu some avg10 50.00
 threshold memory some avg10 10.00
 threshold io some avg10 10.00
 ```
+
+The above is the default configuration if no config file exists.
 
 ⁺ PSI has poll() support, but it's not currently available to unprivileged
 users. See [this
