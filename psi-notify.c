@@ -323,31 +323,29 @@ static int check_pressures(Resource *r) {
 
     f = fopen(r->filename, "r");
 
-    /* Not expect(), since the file might legitimately go away */
     if (!f) {
         perror(r->filename);
-        ret = -EINVAL;
-        goto out;
+        return -EINVAL;
     }
 
     ret = _check_pressures(f, r);
     if (ret) {
-        goto out;
+        goto out_fclose;
     }
 
     if (!r->has_full) {
         ret = 0;
-        goto out;
+        goto out_fclose;
     }
 
     ret = _check_pressures(f, r);
     if (ret) {
-        goto out;
+        goto out_fclose;
     }
 
     ret = 0;
 
-out:
+out_fclose:
     if (f)
         fclose(f);
     return ret;
