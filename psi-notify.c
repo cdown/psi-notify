@@ -243,7 +243,7 @@ static Config *init_config(Config *c) {
     c->cpu.filename = get_pressure_file("cpu");
     c->cpu.type = RT_CPU;
     c->cpu.human_name = "CPU";
-    c->memory.has_full = 0;
+    c->cpu.has_full = 0;
 
     c->memory.filename = get_pressure_file("memory");
     c->memory.type = RT_MEMORY;
