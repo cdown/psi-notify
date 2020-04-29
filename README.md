@@ -17,15 +17,15 @@ using [PSI](https://facebookmicrosites.github.io/psi/).
 ## Config
 
 Put your configuration in ~/.config/psi-notify. Here's an example that will
-check roughly every 10 seconds⁺, and pop up a notification when the values are
+check roughly every 5 seconds⁺, and pop up a notification when the values are
 exceeded:
 
 ```
-update 10
+update 5
 
-threshold cpu some avg10 40.00
-threshold memory some avg10 25.00
-threshold io some avg60 25.00
+threshold cpu some avg10 50.00
+threshold memory some avg10 10.00
+threshold io some avg10 10.00
 ```
 
 ⁺ PSI has poll() support, but it's not currently available to unprivileged
