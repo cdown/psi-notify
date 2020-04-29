@@ -18,7 +18,7 @@
     } while (0)
 
 typedef enum ResourceType {
-    RT_CPU,
+    RT_CPU = 0,
     RT_MEMORY,
     RT_IO,
     _RT_MAX,
