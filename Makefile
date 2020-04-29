@@ -1,4 +1,4 @@
-CFLAGS=-pedantic -Wall -Wextra -Werror $(shell pkg-config --cflags libnotify libsystemd)
+CFLAGS+=-pedantic -Wall -Wextra -Werror $(shell pkg-config --cflags libnotify libsystemd)
 LDFLAGS=$(shell pkg-config --libs libnotify libsystemd)
 
 SOURCES=$(wildcard *.c)
