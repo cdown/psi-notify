@@ -358,6 +358,7 @@ out:
 static NotifyNotification *notify_show(const char *resource) {
     char title[TITLE_MAX];
     NotifyNotification *n;
+    GError *err = NULL;
 
     expect(notify_is_initted());
 
@@ -365,7 +366,14 @@ static NotifyNotification *notify_show(const char *resource) {
     n = notify_notification_new(
         title, "Consider reducing demand on this resource.", NULL);
     notify_notification_set_urgency(n, NOTIFY_URGENCY_CRITICAL);
-    expect(notify_notification_show(n, NULL));
+
+    if (!notify_notification_show(n, &err)) {
+        fprintf(stderr, "Cannot display notification: %s\n", err->message);
+        g_error_free(err);
+        g_object_unref(n);
+        n = NULL;
+    }
+
     return n;
 }
 
