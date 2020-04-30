@@ -71,14 +71,13 @@ static void exit_sig_handler(int sig) {
 }
 
 static void configure_signal_handlers(void) {
-    const struct sigaction sa_hup = {
-        .sa_handler = sighup_handler,
-        .sa_flags = SA_RESTART,
-    };
     const struct sigaction sa_exit = {
         .sa_handler = exit_sig_handler,
     };
-    expect(sigaction(SIGHUP, &sa_hup, NULL) >= 0);
+    expect(sigaction(SIGHUP,
+                     &(const struct sigaction){.sa_handler = sighup_handler,
+                                               .sa_flags = SA_RESTART},
+                     NULL) >= 0);
     expect(sigaction(SIGTERM, &sa_exit, NULL) >= 0);
     expect(sigaction(SIGINT, &sa_exit, NULL) >= 0);
 }
@@ -111,16 +110,14 @@ static char *get_pressure_file(char *resource) {
 #define CONFIG_LINE_MAX 256
 
 static void update_threshold(Config *c, const char *line) {
-    int ret;
     char resource[CONFIG_LINE_MAX], type[CONFIG_LINE_MAX],
         interval[CONFIG_LINE_MAX];
     double threshold;
     Resource *r;
     TimeResourcePressure *t;
 
-    ret =
-        sscanf(line, "%*s %s %s %s %lf", resource, type, interval, &threshold);
-    if (ret != 4) {
+    if (sscanf(line, "%*s %s %s %s %lf", resource, type, interval,
+               &threshold) != 4) {
         fprintf(stderr, "Invalid threshold, ignoring: %s", line);
         return;
     }
@@ -233,7 +230,6 @@ static int update_config(Config *c) {
     }
 
     while (fgets(line, sizeof(line), f)) {
-        int ret;
         char lvalue[CONFIG_LINE_MAX];
         unsigned int rvalue;
 
@@ -245,8 +241,7 @@ static int update_config(Config *c) {
             continue;
         }
 
-        ret = sscanf(line, "%s", lvalue);
-        if (ret != 1) {
+        if (sscanf(line, "%s", lvalue) != 1) {
             fprintf(stderr, "Invalid config line, ignoring: %s", line);
             continue;
         }
@@ -254,8 +249,7 @@ static int update_config(Config *c) {
         if (strcmp(lvalue, "threshold") == 0) {
             update_threshold(c, line);
         } else if (strcmp(lvalue, "update") == 0) {
-            ret = sscanf(line, "%s %u", lvalue, &rvalue);
-            if (ret != 2) {
+            if (sscanf(line, "%s %u", lvalue, &rvalue) != 2) {
                 fprintf(stderr, "Invalid config line, ignoring: %s", line);
                 continue;
             }
@@ -312,7 +306,6 @@ static int _check_pressures(FILE *f, Resource *r) {
     char line[PRESSURE_LINE_LEN];
     char type[PRESSURE_LINE_LEN];
     double ten, sixty, three_hundred;
-    int ret = 0;
 
     start = fgets(line, sizeof(line), f);
     if (!start) {
@@ -320,9 +313,8 @@ static int _check_pressures(FILE *f, Resource *r) {
         return -EINVAL;
     }
 
-    ret = sscanf(line, "%s avg10=%lf avg60=%lf avg300=%lf total=%*s", type,
-                 &ten, &sixty, &three_hundred);
-    if (ret != 4) {
+    if (sscanf(line, "%s avg10=%lf avg60=%lf avg300=%lf total=%*s", type, &ten,
+               &sixty, &three_hundred) != 4) {
         fprintf(stderr, "Can't parse from %s: %s\n", r->filename, line);
         return -EINVAL;
     }
