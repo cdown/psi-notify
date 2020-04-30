@@ -14,6 +14,8 @@
 #define sd_notify(reset_env, state)
 #endif
 
+#define info(format, ...) printf("INFO: " format, __VA_ARGS__);
+
 #define expect(x)                                                              \
     do {                                                                       \
         if (!(x)) {                                                            \
@@ -313,6 +315,8 @@ static int _check_pressures(FILE *f, Resource *r) {
         return -EINVAL;
     }
 
+    info("Current %s pressures: %s", r->human_name, line);
+
     if (sscanf(line, "%s avg10=%lf avg60=%lf avg300=%lf total=%*s", type, &ten,
                &sixty, &three_hundred) != 4) {
         fprintf(stderr, "Can't parse from %s: %s\n", r->filename, line);
@@ -423,7 +427,7 @@ static int mark_res_active(Resource *r) {
         return 0;
     }
 
-    printf("%s warning: active\n", r->human_name);
+    info("%s warning: active\n", r->human_name);
     active_notif[r->type] = notify_show(r->human_name);
     return 1;
 }
@@ -437,7 +441,7 @@ static int mark_res_inactive(Resource *r) {
         return 0;
     }
 
-    printf("%s warning: inactive\n", r->human_name);
+    info("%s warning: inactive\n", r->human_name);
     (void)notify_notification_close(n, NULL);
     active_notif[r->type] = NULL;
     g_object_unref(n);
