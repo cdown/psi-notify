@@ -26,8 +26,8 @@ they start to severely impact system responsiveness.
 
 ## Installation
 
-Manual installation is as simply as running `make`. Make sure you have
-libnotify installed.
+Manual installation is as simple as running `make` and putting the resulting
+`psi-notify` binary in your PATH. Make sure you have libnotify installed.
 
 On Arch, the [psi-notify AUR
 package](https://aur.archlinux.org/packages/psi-notify/) is available.
