@@ -277,7 +277,7 @@ static int update_config(Config *c) {
     return 0;
 }
 
-static Config *init_config(Config *c) {
+static void init_config(Config *c) {
     memset(c, 0, sizeof(Config));
 
     c->cpu.filename = get_pressure_file("cpu");
@@ -296,8 +296,6 @@ static Config *init_config(Config *c) {
     c->io.has_full = 1;
 
     (void)update_config(c);
-
-    return c;
 }
 
 /*
