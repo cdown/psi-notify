@@ -14,9 +14,7 @@ they start to severely impact system responsiveness.
   Notifications](http://www.galago-project.org/specs/notification/0.9/index.html)
 - Active notification management: when thresholds clear, the notification
   automatically closes
-- (Optional)
-  [`sd_notify`](https://www.freedesktop.org/software/systemd/man/sd_notify.html)
-  support for `Type=notify`
+- (Optional) [sd_notify][] support for `Type=notify`
 - Reload configs without restarting using `SIGHUP`
 
 ## Requirements
@@ -28,6 +26,9 @@ they start to severely impact system responsiveness.
 
 Manual installation is as simple as running `make` and putting the resulting
 `psi-notify` binary in your PATH. Make sure you have libnotify installed.
+
+If you don't want [sd_notify][] support even though you have libsystemd available,
+compile with `make WANT_SD_NOTIFY=0`.
 
 On Arch, the [psi-notify AUR
 package](https://aur.archlinux.org/packages/psi-notify/) is available.
@@ -68,3 +69,5 @@ Thresholds are specified with fields in the following format:
    [here](https://facebookmicrosites.github.io/psi/docs/overview#pressure-metric-definitions).
 4. The PSI time period. `avg10`, `avg60`, and `avg300` are currently supported.
 5. The threshold, as a real number between 0 and 100. Decimals are ok.
+
+[sd_notify]: https://www.freedesktop.org/software/systemd/man/sd_notify.html

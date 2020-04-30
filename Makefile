@@ -2,6 +2,13 @@ CFLAGS+=-pedantic -Wall -Wextra -Werror $(shell pkg-config --cflags libnotify)
 LDFLAGS=$(shell pkg-config --libs libnotify)
 
 WANT_SD_NOTIFY=1
+HAS_LIBSYSTEMD=$(shell pkg-config libsystemd && echo 1 || echo 0)
+
+ifeq ($(HAS_LIBSYSTEMD),0)
+$(warning libsystemd not found, setting WANT_SD_NOTIFY=0)
+WANT_SD_NOTIFY=0
+endif
+
 ifeq ($(WANT_SD_NOTIFY),1)
 CFLAGS+=-DWANT_SD_NOTIFY $(shell pkg-config --cflags libsystemd)
 LDFLAGS+=$(shell pkg-config --libs libsystemd)
