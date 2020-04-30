@@ -1,5 +1,11 @@
-CFLAGS+=-pedantic -Wall -Wextra -Werror $(shell pkg-config --cflags libnotify libsystemd)
-LDFLAGS=$(shell pkg-config --libs libnotify libsystemd)
+CFLAGS+=-pedantic -Wall -Wextra -Werror $(shell pkg-config --cflags libnotify)
+LDFLAGS=$(shell pkg-config --libs libnotify)
+
+WANT_SD_NOTIFY=1
+ifeq ($(WANT_SD_NOTIFY),1)
+CFLAGS+=-DWANT_SD_NOTIFY $(shell pkg-config --cflags libsystemd)
+LDFLAGS+=$(shell pkg-config --libs libsystemd)
+endif
 
 SOURCES=$(wildcard *.c)
 EXECUTABLES=$(patsubst %.c,%,$(SOURCES))

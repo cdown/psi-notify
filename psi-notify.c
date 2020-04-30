@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#if __has_include(<systemd/sd-daemon.h>)
+#ifdef WANT_SD_NOTIFY
 #include <systemd/sd-daemon.h>
 #else
 #define sd_notify(reset_env, state)
