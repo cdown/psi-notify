@@ -491,8 +491,15 @@ static void check_pressures_notify_if_new(Resource *r) {
     }
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
     Config config;
+
+    (void)argv;
+
+    if (argc != 1) {
+        fprintf(stderr, "psi-notify doesn't accept any arguments.\n");
+        return 1;
+    }
 
     setvbuf(stdout, NULL, _IONBF, 0);
     init_config(&config);
