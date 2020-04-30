@@ -480,7 +480,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    setvbuf(stdout, NULL, _IONBF, 0);
+    expect(setvbuf(stdout, NULL, _IONBF, 0) == 0);
     init_config(&config);
     configure_signal_handlers();
     expect(notify_init("psi-notify"));
