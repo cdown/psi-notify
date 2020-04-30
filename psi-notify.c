@@ -54,10 +54,6 @@ typedef struct {
 static volatile sig_atomic_t config_reload_pending = 0; /* SIGHUP */
 static volatile sig_atomic_t run = 1;                   /* SIGTERM, SIGINT */
 
-/*
- * A mapping from a ResourceType to a NotifyNotification*. If the pointer is
- * set, this alert is currently active, and if it is NULL, it isn't.
- */
 static NotifyNotification *active_notif[] = {
     [RT_CPU] = NULL,
     [RT_MEMORY] = NULL,
@@ -93,11 +89,6 @@ static char *get_pressure_file(char *resource) {
     path = malloc(PATH_MAX);
     expect(path);
 
-    /*
-     * If we have a logind seat for this user, use the pressure stats for that
-     * seat's slice on cgroup v2. Otherwise, use the system-global pressure
-     * stats.
-     */
     expect(snprintf(path, PATH_MAX,
                     "/sys/fs/cgroup/user.slice/user-%d.slice/%s.pressure",
                     getuid(), resource) > 0);
@@ -234,7 +225,6 @@ static int update_config(Config *c) {
 
         reset_user_facing_config(c);
 
-        /* defaults */
         c->cpu.thresholds.ten.some = 50.00;
         c->memory.thresholds.ten.some = 10.00;
         c->io.thresholds.ten.some = 10.00;
@@ -311,13 +301,8 @@ static Config *init_config(Config *c) {
 }
 
 /*
- * We don't care about total=, so that doesn't need consideration. Therefore
- * the max line len is len("some avg10=100.00 avg60=100.00 avg300=100.00").
- * However, we add a bit more for total= so that fgets can seek to the next
- * newline.
- *
- * We don't need to read in one go like old /proc files, since all of these are
- * backed by seq_file in the kernel.
+ * 64 is len("some avg10=100.00 avg60=100.00 avg300=100.00") + a bit more to
+ * make sure fgets() reads past total= and seeks up to \n.
  */
 #define PRESSURE_LINE_LEN 64
 
@@ -358,11 +343,7 @@ static int _check_pressures(FILE *f, Resource *r) {
     return -EINVAL;
 }
 
-/*
- * >0: Above thresholds
- *  0: Within thresholds
- * <0: Error
- */
+/* >0: above thresholds, 0: within thresholds, <0: error */
 static int check_pressures(Resource *r) {
     FILE *f;
     int ret = 0;
