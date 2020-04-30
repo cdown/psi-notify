@@ -16,6 +16,9 @@ sanitisers: CC=gcc
 sanitisers: CFLAGS+=-fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -ggdb
 sanitisers: all
 
+debug: CFLAGS+=-Og -ggdb -fno-omit-frame-pointer
+debug: all
+
 clang-tidy:
 	-clang-tidy psi-notify.c -checks=-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -- $(CFLAGS) $(LDFLAGS)
 
