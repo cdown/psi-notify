@@ -9,7 +9,7 @@ all: $(EXECUTABLES)
 # Noisy clang build that's expected to fail, but can be useful to find corner
 # cases.
 clang-everything: CC=clang
-clang-everything: CFLAGS+=-Weverything
+clang-everything: CFLAGS+=-Weverything -Wno-disabled-macro-expansion -Wno-padded
 clang-everything: all
 
 sanitisers: CC=gcc
