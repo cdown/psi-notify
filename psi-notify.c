@@ -17,8 +17,8 @@
 #define expect(x)                                                              \
     do {                                                                       \
         if (!(x)) {                                                            \
-            fprintf(stderr, "FATAL: !(%s) at %s:%d\n", #x, __FILE__,           \
-                    __LINE__);                                                 \
+            fprintf(stderr, "FATAL: !(%s) at %s:%s:%d\n", #x, __FILE__,        \
+                    __func__, __LINE__);                                       \
             abort();                                                           \
         }                                                                      \
     } while (0)
