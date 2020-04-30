@@ -13,8 +13,8 @@ clang-everything: CFLAGS+=-Weverything
 clang-everything: all
 
 sanitisers: CC=gcc
-sanitisers: CFLAGS+=-fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -ggdb
-sanitisers: all
+sanitisers: CFLAGS+=-fsanitize=address -fsanitize=undefined
+sanitisers: debug
 
 debug: CFLAGS+=-Og -ggdb -fno-omit-frame-pointer
 debug: all
