@@ -84,20 +84,24 @@ static void configure_signal_handlers(void) {
     expect(sigaction(SIGINT, &sa_exit, NULL) >= 0);
 }
 
+/* len("/sys/fs/cgroup/user.slice/user-2147483647.slice/memory.pressure\0") */
+#define PRESSURE_PATH_MAX 64
+
 static char *get_pressure_file(char *resource) {
     char *path;
 
-    path = malloc(PATH_MAX);
+    path = malloc(PRESSURE_PATH_MAX);
     expect(path);
 
-    expect(snprintf(path, PATH_MAX,
+    expect(snprintf(path, PRESSURE_PATH_MAX,
                     "/sys/fs/cgroup/user.slice/user-%d.slice/%s.pressure",
                     getuid(), resource) > 0);
     if (access(path, R_OK) == 0) {
         return path;
     }
 
-    expect(snprintf(path, PATH_MAX, "/proc/pressure/%s", resource) > 0);
+    expect(snprintf(path, PRESSURE_PATH_MAX, "/proc/pressure/%s", resource) >
+           0);
     if (access(path, R_OK) == 0) {
         return path;
     }
