@@ -2,7 +2,6 @@
 #include <errno.h>
 #include <libnotify/notify.h>
 #include <linux/limits.h>
-#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -188,22 +187,20 @@ static void reset_user_facing_config(Config *c) {
 }
 
 static int update_config(Config *c) {
-    struct passwd *pw = getpwuid(getuid());
     char line[CONFIG_LINE_MAX];
     char config_path[PATH_MAX];
-    char *xdg_config_dir;
+    char *base_dir;
     FILE *f;
 
-    expect(pw);
+    base_dir = getenv("XDG_CONFIG_DIR");
 
-    xdg_config_dir = getenv("XDG_CONFIG_DIR");
-
-    if (xdg_config_dir) {
-        expect(snprintf(config_path, PATH_MAX, "%s/psi-notify",
-                        xdg_config_dir) > 0);
+    if (base_dir) {
+        expect(snprintf(config_path, PATH_MAX, "%s/psi-notify", base_dir) > 0);
     } else {
+        base_dir = getenv("HOME");
+        expect(base_dir); /* required by POSIX */
         expect(snprintf(config_path, PATH_MAX, "%s/.config/psi-notify",
-                        pw->pw_dir) > 0);
+                        base_dir) > 0);
     }
 
     f = fopen(config_path, "r");
