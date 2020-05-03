@@ -13,7 +13,7 @@
 #define sd_notify(reset_env, state)
 #endif
 
-#define info(format, ...) printf("INFO: " format, __VA_ARGS__);
+#define info(format, ...) printf("INFO: " format, __VA_ARGS__)
 
 #define expect(x)                                                              \
     do {                                                                       \
