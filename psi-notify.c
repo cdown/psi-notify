@@ -379,6 +379,11 @@ out_fclose:
 
 #define TITLE_MAX 32
 
+static void notify_destroy(NotifyNotification *n) {
+    (void)notify_notification_close(n, NULL);
+    g_object_unref(G_OBJECT(n));
+}
+
 static NotifyNotification *notify_show(const char *resource) {
     char title[TITLE_MAX];
     NotifyNotification *n;
@@ -394,7 +399,7 @@ static NotifyNotification *notify_show(const char *resource) {
     if (!notify_notification_show(n, &err)) {
         fprintf(stderr, "Cannot display notification: %s\n", err->message);
         g_error_free(err);
-        g_object_unref(n);
+        notify_destroy(n);
         n = NULL;
     }
 
@@ -407,8 +412,7 @@ static void notify_close_all(void) {
         if (active_notif[i]) {
             NotifyNotification *n = active_notif[i];
             active_notif[i] = NULL;
-            (void)notify_notification_close(n, NULL);
-            g_object_unref(n);
+            notify_destroy(n);
         }
     }
 }
@@ -443,9 +447,8 @@ static int mark_res_inactive(Resource *r) {
     }
 
     info("%s warning: inactive\n", r->human_name);
-    (void)notify_notification_close(n, NULL);
     active_notif[r->type] = NULL;
-    g_object_unref(n);
+    notify_destroy(n);
 
     return 1;
 }
