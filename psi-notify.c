@@ -10,11 +10,13 @@
 #ifdef WANT_SD_NOTIFY
 #include <systemd/sd-daemon.h>
 #else
-#define sd_notify(reset_env, state)
+#define sd_notify(reset_env, state)                                            \
+    do {                                                                       \
+    } while (0)
 #endif
 
-#define info(format, ...) printf("INFO: " format, ## __VA_ARGS__)
-#define warn(format, ...) printf("WARN: " format, ## __VA_ARGS__)
+#define info(format, ...) printf("INFO: " format, ##__VA_ARGS__)
+#define warn(format, ...) printf("WARN: " format, ##__VA_ARGS__)
 
 #define expect(x)                                                              \
     do {                                                                       \
