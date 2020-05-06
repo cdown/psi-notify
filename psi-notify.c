@@ -85,7 +85,47 @@ static void configure_signal_handlers(void) {
     expect(sigaction(SIGINT, &sa_exit, NULL) >= 0);
 }
 
-/* len("/sys/fs/cgroup/user.slice/user-2147483647.slice/memory.pressure\0") */
+static void pn_destroy_notifications(NotifyNotification *n) {
+    (void)notify_notification_close(n, NULL);
+    g_object_unref(G_OBJECT(n));
+}
+
+#define TITLE_MAX 22 /* len(b"High memory pressure!\0") */
+
+static NotifyNotification *pn_show_notification(const char *resource) {
+    char title[TITLE_MAX];
+    NotifyNotification *n;
+    GError *err = NULL;
+
+    expect(notify_is_initted());
+
+    expect(snprintf(title, TITLE_MAX, "High %s pressure!", resource) > 0);
+    n = notify_notification_new(
+        title, "Consider reducing demand on this resource.", NULL);
+    notify_notification_set_urgency(n, NOTIFY_URGENCY_CRITICAL);
+
+    if (!notify_notification_show(n, &err)) {
+        warn("Cannot display notification: %s\n", err->message);
+        g_error_free(err);
+        pn_destroy_notifications(n);
+        n = NULL;
+    }
+
+    return n;
+}
+
+static void pn_close_all_notifications(void) {
+    size_t i;
+    for (i = 0; i < sizeof(active_notif) / sizeof(active_notif[0]); i++) {
+        if (active_notif[i]) {
+            NotifyNotification *n = active_notif[i];
+            active_notif[i] = NULL;
+            pn_destroy_notifications(n);
+        }
+    }
+}
+
+/* len(b"/sys/fs/cgroup/user.slice/user-2147483647.slice/memory.pressure\0") */
 #define PRESSURE_PATH_MAX 64
 
 static char *get_pressure_file(char *resource) {
@@ -374,54 +414,6 @@ out_fclose:
     return ret;
 }
 
-#define TITLE_MAX 32
-
-static void pn_destroy_notifications(NotifyNotification *n) {
-    (void)notify_notification_close(n, NULL);
-    g_object_unref(G_OBJECT(n));
-}
-
-static NotifyNotification *pn_show_notification(const char *resource) {
-    char title[TITLE_MAX];
-    NotifyNotification *n;
-    GError *err = NULL;
-
-    expect(notify_is_initted());
-
-    expect(snprintf(title, TITLE_MAX, "High %s pressure!", resource) > 0);
-    n = notify_notification_new(
-        title, "Consider reducing demand on this resource.", NULL);
-    notify_notification_set_urgency(n, NOTIFY_URGENCY_CRITICAL);
-
-    if (!notify_notification_show(n, &err)) {
-        warn("Cannot display notification: %s\n", err->message);
-        g_error_free(err);
-        pn_destroy_notifications(n);
-        n = NULL;
-    }
-
-    return n;
-}
-
-static void pn_close_all_notifications(void) {
-    size_t i;
-    for (i = 0; i < sizeof(active_notif) / sizeof(active_notif[0]); i++) {
-        if (active_notif[i]) {
-            NotifyNotification *n = active_notif[i];
-            active_notif[i] = NULL;
-            pn_destroy_notifications(n);
-        }
-    }
-}
-
-static void teardown(Config *c) {
-    free(c->cpu.filename);
-    free(c->memory.filename);
-    free(c->io.filename);
-    pn_close_all_notifications();
-    notify_uninit();
-}
-
 /* 0 means already active, 1 means newly active. */
 static int mark_res_active(Resource *r) {
     if (active_notif[r->type]) {
@@ -464,6 +456,14 @@ static void check_pressures_notify_if_new(Resource *r) {
         warn("Error getting %s pressure: %s\n", r->human_name, strerror(ret));
         break;
     }
+}
+
+static void teardown(Config *c) {
+    free(c->cpu.filename);
+    free(c->memory.filename);
+    free(c->io.filename);
+    pn_close_all_notifications();
+    notify_uninit();
 }
 
 int main(int argc, char *argv[]) {
