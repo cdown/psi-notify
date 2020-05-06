@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <libnotify/notify.h>
 #include <linux/limits.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -238,6 +239,7 @@ static void update_watchdog_usec(Config *c) {
 }
 
 static int update_config(Config *c) {
+    struct passwd *pw = getpwuid(getuid());
     char line[CONFIG_LINE_MAX];
     char config_path[PATH_MAX];
     char *base_dir;
@@ -249,7 +251,17 @@ static int update_config(Config *c) {
     if (base_dir) {
         expect(snprintf(config_path, PATH_MAX, "%s/psi-notify", base_dir) > 0);
     } else {
-        expect((base_dir = getenv("HOME"))); /* required by POSIX */
+        base_dir = getenv("HOME");
+        if (!base_dir) {
+            if (pw) {
+                base_dir = pw->pw_dir;
+            } else {
+                warn("%s\n",
+                     "No $XDG_CONFIG_DIR, $HOME, or entry in /etc/passwd?");
+                base_dir = "/";
+            }
+        }
+
         expect(snprintf(config_path, PATH_MAX, "%s/.config/psi-notify",
                         base_dir) > 0);
     }
