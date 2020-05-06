@@ -5,6 +5,10 @@ This can help you to identify misbehaving applications on your machine before
 they start to severely impact system responsiveness, in a way which
 `MemAvailable` or other metrics cannot.
 
+## Demo
+
+![](demo.gif)
+
 ## Features
 
 - Runs unprivileged
