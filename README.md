@@ -1,3 +1,7 @@
+**tl;dr: psi-notify can alert you when resources on your machine are becoming
+oversaturated, and allow you to take action *before* your system slows to a
+crawl.**
+
 psi-notify is a minimal unprivileged notifier for system-wide resource pressure
 using [PSI](https://facebookmicrosites.github.io/psi/).
 
