@@ -514,5 +514,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    sd_notify(0, "STOPPING=1\nSTATUS=Tearing down...");
     teardown(&config);
 }
