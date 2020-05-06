@@ -13,7 +13,8 @@
 #define sd_notify(reset_env, state)
 #endif
 
-#define info(format, ...) printf("INFO: " format, __VA_ARGS__)
+#define info(format, ...) printf("INFO: " format, ## __VA_ARGS__)
+#define warn(format, ...) printf("WARN: " format, ## __VA_ARGS__)
 
 #define expect(x)                                                              \
     do {                                                                       \
@@ -105,9 +106,8 @@ static char *get_pressure_file(char *resource) {
         return path;
     }
 
-    fprintf(stderr,
-            "Couldn't find any pressure file for resource %s, skipping\n",
-            resource);
+    warn("Couldn't find any pressure file for resource %s, skipping\n",
+         resource);
     free(path);
     return NULL;
 }
@@ -123,13 +123,13 @@ static void update_threshold(Config *c, const char *line) {
 
     if (sscanf(line, "%*s %s %s %s %lf", resource, type, interval,
                &threshold) != 4) {
-        fprintf(stderr, "Invalid threshold, ignoring: %s", line);
+        warn("Invalid threshold, ignoring: %s", line);
         return;
     }
 
     if (threshold < 0) {
-        fprintf(stderr, "Invalid threshold for %s::%s::%s, ignoring: %f\n",
-                resource, type, interval, threshold);
+        warn("Invalid threshold for %s::%s::%s, ignoring: %f\n", resource, type,
+             interval, threshold);
         return;
     }
 
@@ -140,8 +140,7 @@ static void update_threshold(Config *c, const char *line) {
     } else if (strcmp(resource, "io") == 0) {
         r = &c->io;
     } else {
-        fprintf(stderr, "Invalid resource in config, ignoring: '%s'\n",
-                resource);
+        warn("Invalid resource in config, ignoring: '%s'\n", resource);
         return;
     }
 
@@ -152,8 +151,7 @@ static void update_threshold(Config *c, const char *line) {
     } else if (strcmp(interval, "avg300") == 0) {
         t = &r->thresholds.three_hundred;
     } else {
-        fprintf(stderr, "Invalid interval in config, ignoring: '%s'\n",
-                interval);
+        warn("Invalid interval in config, ignoring: '%s'\n", interval);
         return;
     }
 
@@ -161,12 +159,12 @@ static void update_threshold(Config *c, const char *line) {
         t->some = threshold;
     } else if (strcmp(type, "full") == 0) {
         if (strcmp(resource, "cpu") == 0) {
-            fprintf(stderr, "full interval for CPU is bogus, ignoring\n");
+            warn("Full interval for CPU is bogus, ignoring\n");
             return;
         }
         t->full = threshold;
     } else {
-        fprintf(stderr, "Invalid type in config, ignoring: '%s'\n", type);
+        warn("Invalid type in config, ignoring: '%s'\n", type);
         return;
     }
 }
@@ -210,17 +208,16 @@ static int update_config(Config *c) {
     } else {
         if (config_reload_pending) {
             /* This was from a SIGHUP, so we already have a config. Keep it. */
-            fprintf(stderr,
-                    "Config reload request ignored, cannot open %s: %s\n",
-                    config_path, strerror(errno));
+            warn("Config reload request ignored, cannot open %s: %s\n",
+                 config_path, strerror(errno));
             return -errno;
         }
 
         if (errno == ENOENT) {
-            fprintf(stderr, "No config at %s, using defaults\n", config_path);
+            info("No config at %s, using defaults\n", config_path);
         } else {
-            fprintf(stderr, "Using default config, cannot open %s: %s\n",
-                    config_path, strerror(errno));
+            warn("Using default config, cannot open %s: %s\n", config_path,
+                 strerror(errno));
         }
 
         reset_user_facing_config(c);
@@ -245,7 +242,7 @@ static int update_config(Config *c) {
         }
 
         if (sscanf(line, "%s", lvalue) != 1) {
-            fprintf(stderr, "Invalid config line, ignoring: %s", line);
+            warn("Invalid config line, ignoring: %s", line);
             continue;
         }
 
@@ -253,16 +250,16 @@ static int update_config(Config *c) {
             update_threshold(c, line);
         } else if (strcmp(lvalue, "update") == 0) {
             if (sscanf(line, "%s %u", lvalue, &rvalue) != 2) {
-                fprintf(stderr, "Invalid config line, ignoring: %s", line);
+                warn("Invalid config line, ignoring: %s", line);
                 continue;
             }
             if (rvalue <= 0) {
-                fprintf(stderr, "Ignoring <= 0 update interval: %d\n", rvalue);
+                warn("Ignoring <= 0 update interval: %d\n", rvalue);
                 continue;
             }
             c->update_interval = rvalue;
         } else {
-            fprintf(stderr, "Invalid config line, ignoring: %s", line);
+            warn("Invalid config line, ignoring: %s", line);
             continue;
         }
     }
@@ -312,7 +309,7 @@ static int _check_pressures(FILE *f, Resource *r) {
 
     start = fgets(line, sizeof(line), f);
     if (!start) {
-        fprintf(stderr, "Premature EOF from %s\n", r->filename);
+        warn("Premature EOF from %s\n", r->filename);
         return -EINVAL;
     }
 
@@ -320,7 +317,7 @@ static int _check_pressures(FILE *f, Resource *r) {
 
     if (sscanf(line, "%s avg10=%lf avg60=%lf avg300=%lf total=%*s", type, &ten,
                &sixty, &three_hundred) != 4) {
-        fprintf(stderr, "Can't parse from %s: %s\n", r->filename, line);
+        warn("Can't parse from %s: %s\n", r->filename, line);
         return -EINVAL;
     }
 
@@ -334,7 +331,7 @@ static int _check_pressures(FILE *f, Resource *r) {
                COMPARE_THRESH(r->thresholds.three_hundred.full, three_hundred);
     }
 
-    fprintf(stderr, "Invalid type: %s\n", type);
+    warn("Invalid type: %s\n", type);
     return -EINVAL;
 }
 
@@ -397,7 +394,7 @@ static NotifyNotification *notify_show(const char *resource) {
     notify_notification_set_urgency(n, NOTIFY_URGENCY_CRITICAL);
 
     if (!notify_notification_show(n, &err)) {
-        fprintf(stderr, "Cannot display notification: %s\n", err->message);
+        warn("Cannot display notification: %s\n", err->message);
         g_error_free(err);
         notify_destroy(n);
         n = NULL;
@@ -464,8 +461,7 @@ static void check_pressures_notify_if_new(Resource *r) {
         mark_res_active(r);
         break;
     default:
-        fprintf(stderr, "Error getting %s pressure: %s\n", r->human_name,
-                strerror(ret));
+        warn("Error getting %s pressure: %s\n", r->human_name, strerror(ret));
         break;
     }
 }
@@ -476,7 +472,7 @@ int main(int argc, char *argv[]) {
     (void)argv;
 
     if (argc != 1) {
-        fprintf(stderr, "psi-notify doesn't accept any arguments.\n");
+        warn("psi-notify doesn't accept any arguments.\n");
         return 1;
     }
 
