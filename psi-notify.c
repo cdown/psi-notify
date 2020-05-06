@@ -133,7 +133,7 @@ static void alert_destroy_all_active(void) {
 /* len(b"/sys/fs/cgroup/user.slice/user-2147483647.slice/memory.pressure\0") */
 #define PRESSURE_PATH_MAX 64
 
-static char *get_pressure_file(char *resource) {
+static char *get_psi_filename(char *resource) {
     char *path;
 
     path = malloc(PRESSURE_PATH_MAX);
@@ -350,17 +350,17 @@ out_update_watchdog:
 static void config_init(Config *c) {
     memset(c, 0, sizeof(Config));
 
-    c->cpu.filename = get_pressure_file("cpu");
+    c->cpu.filename = get_psi_filename("cpu");
     c->cpu.type = RT_CPU;
     c->cpu.human_name = "CPU";
     c->cpu.has_full = 0;
 
-    c->memory.filename = get_pressure_file("memory");
+    c->memory.filename = get_psi_filename("memory");
     c->memory.type = RT_MEMORY;
     c->memory.human_name = "memory";
     c->memory.has_full = 1;
 
-    c->io.filename = get_pressure_file("io");
+    c->io.filename = get_psi_filename("io");
     c->io.type = RT_IO;
     c->io.human_name = "I/O";
     c->io.has_full = 1;
