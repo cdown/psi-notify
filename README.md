@@ -31,7 +31,7 @@ they start to severely impact system responsiveness, in a way which
 
 ## Requirements
 
-- Linux 4.20+
+- Linux 4.20+ with `CONFIG_PSI` (enabled by default in most distributions)
 - libnotify
 
 ## Installation
