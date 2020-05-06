@@ -162,6 +162,7 @@ static void update_threshold(Config *c, const char *line) {
     Resource *r;
     TimeResourcePressure *t;
 
+    /* line is clamped to CONFIG_LINE_MAX, so formats cannot be wider */
     if (sscanf(line, "%*s %s %s %s %lf", resource, type, interval,
                &threshold) != 4) {
         warn("Invalid threshold, ignoring: %s", line);
@@ -278,6 +279,14 @@ static int update_config(Config *c) {
         }
 
         if (line[0] == '#') {
+            continue;
+        }
+
+        if (line[strlen(line) - 1] != '\n') {
+            int c;
+            warn("Config line is too long to be valid, ignoring: %s\n", line);
+            while ((c = fgetc(f)) != EOF && c != '\n')
+                ;
             continue;
         }
 
