@@ -15,8 +15,8 @@
     } while (0)
 #endif
 
-#define info(format, ...) printf("INFO: " format, ##__VA_ARGS__)
-#define warn(format, ...) printf("WARN: " format, ##__VA_ARGS__)
+#define info(format, ...) printf("INFO: " format, __VA_ARGS__)
+#define warn(format, ...) printf("WARN: " format, __VA_ARGS__)
 #define expect(x)                                                              \
     do {                                                                       \
         if (!(x)) {                                                            \
@@ -201,7 +201,7 @@ static void update_threshold(Config *c, const char *line) {
         t->some = threshold;
     } else if (strcmp(type, "full") == 0) {
         if (strcmp(resource, "cpu") == 0) {
-            warn("Full interval for CPU is bogus, ignoring\n");
+            warn("Full interval for %s is bogus, ignoring\n", resource);
             return;
         }
         t->full = threshold;
@@ -481,7 +481,7 @@ int main(int argc, char *argv[]) {
     (void)argv;
 
     if (argc != 1) {
-        warn("psi-notify doesn't accept any arguments.\n");
+        warn("%s doesn't accept any arguments.\n", argv[0]);
         return 1;
     }
 
