@@ -19,6 +19,15 @@ EXECUTABLES=$(patsubst %.c,%,$(SOURCES))
 
 all: $(EXECUTABLES)
 
+%: %.c
+	$(CC) $(CFLAGS) $< -o $@ $(LIBS) $(LDFLAGS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) $< -c -o $@
+
+%: %.o
+	$(CC) $< -o $@ $(LIBS) $(LDFLAGS)
+
 # Noisy clang build that's expected to fail, but can be useful to find corner
 # cases.
 clang-everything: CC=clang
