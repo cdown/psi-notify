@@ -2,7 +2,7 @@
 oversaturated, and allow you to take action *before* your system slows to a
 crawl.**
 
-[![Tests](https://img.shields.io/travis/cdown/psi-notify/master.svg)](https://travis-ci.org/cdown/psi-notify)
+[![Tests](https://img.shields.io/travis/cdown/psi-notify/master.svg)](https://travis-ci.com/cdown/psi-notify)
 
 psi-notify is a minimal unprivileged notifier for system-wide resource pressure
 using [PSI](https://facebookmicrosites.github.io/psi/).
