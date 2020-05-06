@@ -17,7 +17,6 @@
 
 #define info(format, ...) printf("INFO: " format, ##__VA_ARGS__)
 #define warn(format, ...) printf("WARN: " format, ##__VA_ARGS__)
-
 #define expect(x)                                                              \
     do {                                                                       \
         if (!(x)) {                                                            \
@@ -197,8 +196,7 @@ static int update_config(Config *c) {
     if (base_dir) {
         expect(snprintf(config_path, PATH_MAX, "%s/psi-notify", base_dir) > 0);
     } else {
-        base_dir = getenv("HOME");
-        expect(base_dir); /* required by POSIX */
+        expect((base_dir = getenv("HOME"))); /* required by POSIX */
         expect(snprintf(config_path, PATH_MAX, "%s/.config/psi-notify",
                         base_dir) > 0);
     }
