@@ -67,36 +67,37 @@ static NotifyNotification *active_notif[] = {
     [RT_IO] = NULL,
 };
 
-static void sighup_handler(int sig) {
+static void request_reload_config(int sig) {
     (void)sig;
     config_reload_pending = 1;
 }
 
-static void exit_sig_handler(int sig) {
+static void request_exit(int sig) {
     (void)sig;
     run = 0;
 }
 
 static void configure_signal_handlers(void) {
     const struct sigaction sa_exit = {
-        .sa_handler = exit_sig_handler,
+        .sa_handler = request_exit,
     };
-    expect(sigaction(SIGHUP,
-                     &(const struct sigaction){.sa_handler = sighup_handler,
-                                               .sa_flags = SA_RESTART},
-                     NULL) >= 0);
+    expect(
+        sigaction(SIGHUP,
+                  &(const struct sigaction){.sa_handler = request_reload_config,
+                                            .sa_flags = SA_RESTART},
+                  NULL) >= 0);
     expect(sigaction(SIGTERM, &sa_exit, NULL) >= 0);
     expect(sigaction(SIGINT, &sa_exit, NULL) >= 0);
 }
 
-static void pn_destroy_notification(NotifyNotification *n) {
+static void alert_destroy(NotifyNotification *n) {
     (void)notify_notification_close(n, NULL);
     g_object_unref(G_OBJECT(n));
 }
 
 #define TITLE_MAX 22 /* len(b"High memory pressure!\0") */
 
-static NotifyNotification *pn_show_notification(const char *resource) {
+static NotifyNotification *alert_user(const char *resource) {
     char title[TITLE_MAX];
     NotifyNotification *n;
     GError *err = NULL;
@@ -111,20 +112,20 @@ static NotifyNotification *pn_show_notification(const char *resource) {
     if (!notify_notification_show(n, &err)) {
         warn("Cannot display notification: %s\n", err->message);
         g_error_free(err);
-        pn_destroy_notification(n);
+        alert_destroy(n);
         n = NULL;
     }
 
     return n;
 }
 
-static void pn_close_all_notifications(void) {
+static void alert_destroy_all_active(void) {
     size_t i;
     for (i = 0; i < sizeof(active_notif) / sizeof(active_notif[0]); i++) {
         if (active_notif[i]) {
             NotifyNotification *n = active_notif[i];
             active_notif[i] = NULL;
-            pn_destroy_notification(n);
+            alert_destroy(n);
         }
     }
 }
@@ -159,7 +160,7 @@ static char *get_pressure_file(char *resource) {
 
 #define CONFIG_LINE_MAX 256
 
-static void update_threshold(Config *c, const char *line) {
+static void threshold_update(Config *c, const char *line) {
     char resource[CONFIG_LINE_MAX], type[CONFIG_LINE_MAX],
         interval[CONFIG_LINE_MAX];
     double threshold;
@@ -221,7 +222,7 @@ static int is_blank(const char *s) {
     return *s == '\0';
 }
 
-static void reset_user_facing_config(Config *c) {
+static void config_reset_user_facing(Config *c) {
     c->update_interval = 5;
 
     /* -nan */
@@ -232,13 +233,13 @@ static void reset_user_facing_config(Config *c) {
 
 #define WATCHDOG_GRACE_PERIOD_SEC 5
 #define SEC_TO_USEC 1000000
-static void update_watchdog_usec(Config *c) {
+static void watchdog_update_usec(Config *c) {
     expect(c->update_interval > 0);
     sd_notifyf(0, "WATCHDOG_USEC=%d",
                (c->update_interval + WATCHDOG_GRACE_PERIOD_SEC) * SEC_TO_USEC);
 }
 
-static int update_config(Config *c) {
+static int config_update_from_file(Config *c) {
     struct passwd *pw = getpwuid(getuid());
     char line[CONFIG_LINE_MAX];
     char config_path[PATH_MAX];
@@ -269,7 +270,7 @@ static int update_config(Config *c) {
     f = fopen(config_path, "r");
 
     if (f) {
-        reset_user_facing_config(c);
+        config_reset_user_facing(c);
     } else {
         if (config_reload_pending) {
             /* This was from a SIGHUP, so we already have a config. Keep it. */
@@ -285,7 +286,7 @@ static int update_config(Config *c) {
                  strerror(errno));
         }
 
-        reset_user_facing_config(c);
+        config_reset_user_facing(c);
 
         c->cpu.thresholds.ten.some = 50.00;
         c->memory.thresholds.ten.some = 10.00;
@@ -321,7 +322,7 @@ static int update_config(Config *c) {
         }
 
         if (strcmp(lvalue, "threshold") == 0) {
-            update_threshold(c, line);
+            threshold_update(c, line);
         } else if (strcmp(lvalue, "update") == 0) {
             if (sscanf(line, "%s %u", lvalue, &rvalue) != 2) {
                 warn("Invalid config line, ignoring: %s", line);
@@ -341,12 +342,12 @@ static int update_config(Config *c) {
     fclose(f);
 
 out_update_watchdog:
-    update_watchdog_usec(c);
+    watchdog_update_usec(c);
 
     return ret;
 }
 
-static void init_config(Config *c) {
+static void config_init(Config *c) {
     memset(c, 0, sizeof(Config));
 
     c->cpu.filename = get_pressure_file("cpu");
@@ -364,7 +365,7 @@ static void init_config(Config *c) {
     c->io.human_name = "I/O";
     c->io.has_full = 1;
 
-    (void)update_config(c);
+    (void)config_update_from_file(c);
 }
 
 /*
@@ -376,7 +377,7 @@ static void init_config(Config *c) {
 #define COMPARE_THRESH(threshold, current)                                     \
     (threshold >= 0 && current > threshold)
 
-static int _check_pressures(FILE *f, Resource *r) {
+static int pressure_check_single_line(FILE *f, Resource *r) {
     char *start;
     char line[PRESSURE_LINE_LEN];
     char type[PRESSURE_LINE_LEN];
@@ -411,7 +412,7 @@ static int _check_pressures(FILE *f, Resource *r) {
 }
 
 /* >0: above thresholds, 0: within thresholds, <0: error */
-static int check_pressures(Resource *r) {
+static int pressure_check(Resource *r) {
     FILE *f;
     int ret = 0;
 
@@ -426,7 +427,7 @@ static int check_pressures(Resource *r) {
         return -EINVAL;
     }
 
-    ret = _check_pressures(f, r);
+    ret = pressure_check_single_line(f, r);
     if (ret) {
         goto out_fclose;
     }
@@ -436,7 +437,7 @@ static int check_pressures(Resource *r) {
         goto out_fclose;
     }
 
-    ret = _check_pressures(f, r);
+    ret = pressure_check_single_line(f, r);
     if (ret) {
         goto out_fclose;
     }
@@ -450,19 +451,19 @@ out_fclose:
 }
 
 /* 0 means already active, 1 means newly active. */
-static int mark_res_active(Resource *r) {
+static int alert_user_if_new(Resource *r) {
     if (active_notif[r->type]) {
         /* We already have an active warning, nothing to do. */
         return 0;
     }
 
     info("%s warning: active\n", r->human_name);
-    active_notif[r->type] = pn_show_notification(r->human_name);
+    active_notif[r->type] = alert_user(r->human_name);
     return 1;
 }
 
 /* 0 means already inactive, 1 means newly inactive. */
-static int mark_res_inactive(Resource *r) {
+static int alert_stop(Resource *r) {
     NotifyNotification *n = active_notif[r->type];
 
     if (!n) {
@@ -472,33 +473,25 @@ static int mark_res_inactive(Resource *r) {
 
     info("%s warning: inactive\n", r->human_name);
     active_notif[r->type] = NULL;
-    pn_destroy_notification(n);
+    alert_destroy(n);
 
     return 1;
 }
 
-static void check_pressures_notify_if_new(Resource *r) {
-    int ret = check_pressures(r);
+static void pressure_check_notify_if_new(Resource *r) {
+    int ret = pressure_check(r);
 
     switch (ret) {
     case 0:
-        mark_res_inactive(r);
+        alert_stop(r);
         break;
     case 1:
-        mark_res_active(r);
+        alert_user_if_new(r);
         break;
     default:
         warn("Error getting %s pressure: %s\n", r->human_name, strerror(ret));
         break;
     }
-}
-
-static void teardown(Config *c) {
-    free(c->cpu.filename);
-    free(c->memory.filename);
-    free(c->io.filename);
-    pn_close_all_notifications();
-    notify_uninit();
 }
 
 int main(int argc, char *argv[]) {
@@ -512,7 +505,7 @@ int main(int argc, char *argv[]) {
     }
 
     expect(setvbuf(stdout, NULL, _IONBF, 0) == 0);
-    init_config(&config);
+    config_init(&config);
     configure_signal_handlers();
     expect(notify_init("psi-notify"));
 
@@ -525,13 +518,13 @@ int main(int argc, char *argv[]) {
     while (run) {
         sd_notify(0, "READY=1\nWATCHDOG=1\n"
                      "STATUS=Checking current pressures...");
-        check_pressures_notify_if_new(&config.cpu);
-        check_pressures_notify_if_new(&config.memory);
-        check_pressures_notify_if_new(&config.io);
+        pressure_check_notify_if_new(&config.cpu);
+        pressure_check_notify_if_new(&config.memory);
+        pressure_check_notify_if_new(&config.io);
 
         if (config_reload_pending) {
             sd_notify(0, "RELOADING=1\nSTATUS=Reloading config...");
-            if (update_config(&config) == 0) {
+            if (config_update_from_file(&config) == 0) {
                 printf("Config reloaded.\n");
             }
             config_reload_pending = 0;
@@ -542,5 +535,10 @@ int main(int argc, char *argv[]) {
     }
 
     sd_notify(0, "STOPPING=1\nSTATUS=Tearing down...");
-    teardown(&config);
+
+    free(config.cpu.filename);
+    free(config.memory.filename);
+    free(config.io.filename);
+    alert_destroy_all_active();
+    notify_uninit();
 }
