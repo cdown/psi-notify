@@ -13,6 +13,9 @@
 #define sd_notify(reset_env, state)                                            \
     do {                                                                       \
     } while (0)
+#define sd_notifyf(reset_env, fmt, ...)                                        \
+    do {                                                                       \
+    } while (0)
 #endif
 
 #define info(format, ...) printf("INFO: " format, __VA_ARGS__)
@@ -226,11 +229,20 @@ static void reset_user_facing_config(Config *c) {
     memset(&c->io.thresholds, 0xff, sizeof(c->io.thresholds));
 }
 
+#define WATCHDOG_GRACE_PERIOD_SEC 5
+#define SEC_TO_USEC 1000000
+static void update_watchdog_usec(Config *c) {
+    expect(c->update_interval > 0);
+    sd_notifyf(0, "WATCHDOG_USEC=%d",
+               (c->update_interval + WATCHDOG_GRACE_PERIOD_SEC) * SEC_TO_USEC);
+}
+
 static int update_config(Config *c) {
     char line[CONFIG_LINE_MAX];
     char config_path[PATH_MAX];
     char *base_dir;
     FILE *f;
+    int ret = 0;
 
     base_dir = getenv("XDG_CONFIG_DIR");
 
@@ -267,7 +279,8 @@ static int update_config(Config *c) {
         c->memory.thresholds.ten.some = 10.00;
         c->io.thresholds.ten.some = 10.00;
 
-        return -errno;
+        ret = -errno;
+        goto out_update_watchdog;
     }
 
     while (fgets(line, sizeof(line), f)) {
@@ -315,9 +328,10 @@ static int update_config(Config *c) {
 
     fclose(f);
 
-    expect(c->update_interval > 0);
+out_update_watchdog:
+    update_watchdog_usec(c);
 
-    return 0;
+    return ret;
 }
 
 static void init_config(Config *c) {
@@ -339,6 +353,7 @@ static void init_config(Config *c) {
     c->io.has_full = 1;
 
     (void)update_config(c);
+    update_watchdog_usec(c);
 }
 
 /*
@@ -497,7 +512,8 @@ int main(int argc, char *argv[]) {
      * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
      */
     while (run) {
-        sd_notify(0, "READY=1\nSTATUS=Checking current pressures...");
+        sd_notify(0, "READY=1\nWATCHDOG=1\n"
+                     "STATUS=Checking current pressures...");
         check_pressures_notify_if_new(&config.cpu);
         check_pressures_notify_if_new(&config.memory);
         check_pressures_notify_if_new(&config.io);
