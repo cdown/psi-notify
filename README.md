@@ -23,7 +23,8 @@ they start to severely impact system responsiveness, in a way which
   Notifications](http://www.galago-project.org/specs/notification/0.9/index.html)
 - Active notification management: when thresholds clear, the notification
   automatically closes
-- (Optional) [sd_notify][] support for `Type=notify`
+- (Optional) [sd_notify][] support for `Type=notify`. Compile with
+  `WANT_SD_NOTIFY=0` if you'd prefer not to have it.
 - Reload configs without restarting using `SIGHUP`
 
 ## Requirements
