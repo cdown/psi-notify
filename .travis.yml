@@ -1,0 +1,17 @@
+dist: bionic
+
+language: c
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get -y install libnotify-dev libsystemd-dev
+
+jobs:
+  include:
+    - script: make
+    - script: make clang-tidy
+    - script: make clang-everything
+
+    - script: make WANT_SD_NOTIFY=0
+    - script: make clang-tidy WANT_SD_NOTIFY=0
+    - script: make clang-everything WANT_SD_NOTIFY=0
