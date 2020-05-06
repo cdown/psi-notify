@@ -353,7 +353,6 @@ static void init_config(Config *c) {
     c->io.has_full = 1;
 
     (void)update_config(c);
-    update_watchdog_usec(c);
 }
 
 /*
