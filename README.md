@@ -45,6 +45,11 @@ compile with `make WANT_SD_NOTIFY=0`.
 On Arch, the [psi-notify AUR
 package](https://aur.archlinux.org/packages/psi-notify/) is available.
 
+After that, you just start psi-notify. A systemd user service is packaged -- if
+you want to use that, you can run the following:
+
+    systemctl --user start psi-notify
+
 ## Config
 
 Put your configuration in `~/.config/psi-notify`. Here's an example that will
