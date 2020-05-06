@@ -89,7 +89,7 @@ static void configure_signal_handlers(void) {
     expect(sigaction(SIGINT, &sa_exit, NULL) >= 0);
 }
 
-static void pn_destroy_notifications(NotifyNotification *n) {
+static void pn_destroy_notification(NotifyNotification *n) {
     (void)notify_notification_close(n, NULL);
     g_object_unref(G_OBJECT(n));
 }
@@ -111,7 +111,7 @@ static NotifyNotification *pn_show_notification(const char *resource) {
     if (!notify_notification_show(n, &err)) {
         warn("Cannot display notification: %s\n", err->message);
         g_error_free(err);
-        pn_destroy_notifications(n);
+        pn_destroy_notification(n);
         n = NULL;
     }
 
@@ -124,7 +124,7 @@ static void pn_close_all_notifications(void) {
         if (active_notif[i]) {
             NotifyNotification *n = active_notif[i];
             active_notif[i] = NULL;
-            pn_destroy_notifications(n);
+            pn_destroy_notification(n);
         }
     }
 }
@@ -472,7 +472,7 @@ static int mark_res_inactive(Resource *r) {
 
     info("%s warning: inactive\n", r->human_name);
     active_notif[r->type] = NULL;
-    pn_destroy_notifications(n);
+    pn_destroy_notification(n);
 
     return 1;
 }
