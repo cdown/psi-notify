@@ -283,9 +283,9 @@ static int update_config(Config *c) {
         }
 
         if (line[strlen(line) - 1] != '\n') {
-            int c;
+            int ch;
             warn("Config line is too long to be valid, ignoring: %s\n", line);
-            while ((c = fgetc(f)) != EOF && c != '\n')
+            while ((ch = fgetc(f)) != EOF && ch != '\n')
                 ;
             continue;
         }
