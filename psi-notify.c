@@ -376,12 +376,12 @@ out_fclose:
 
 #define TITLE_MAX 32
 
-static void notify_destroy(NotifyNotification *n) {
+static void pn_destroy_notifications(NotifyNotification *n) {
     (void)notify_notification_close(n, NULL);
     g_object_unref(G_OBJECT(n));
 }
 
-static NotifyNotification *notify_show(const char *resource) {
+static NotifyNotification *pn_show_notification(const char *resource) {
     char title[TITLE_MAX];
     NotifyNotification *n;
     GError *err = NULL;
@@ -396,20 +396,20 @@ static NotifyNotification *notify_show(const char *resource) {
     if (!notify_notification_show(n, &err)) {
         warn("Cannot display notification: %s\n", err->message);
         g_error_free(err);
-        notify_destroy(n);
+        pn_destroy_notifications(n);
         n = NULL;
     }
 
     return n;
 }
 
-static void notify_close_all(void) {
+static void pn_close_all_notifications(void) {
     size_t i;
     for (i = 0; i < sizeof(active_notif) / sizeof(active_notif[0]); i++) {
         if (active_notif[i]) {
             NotifyNotification *n = active_notif[i];
             active_notif[i] = NULL;
-            notify_destroy(n);
+            pn_destroy_notifications(n);
         }
     }
 }
@@ -418,7 +418,7 @@ static void teardown(Config *c) {
     free(c->cpu.filename);
     free(c->memory.filename);
     free(c->io.filename);
-    notify_close_all();
+    pn_close_all_notifications();
     notify_uninit();
 }
 
@@ -430,7 +430,7 @@ static int mark_res_active(Resource *r) {
     }
 
     info("%s warning: active\n", r->human_name);
-    active_notif[r->type] = notify_show(r->human_name);
+    active_notif[r->type] = pn_show_notification(r->human_name);
     return 1;
 }
 
@@ -445,7 +445,7 @@ static int mark_res_inactive(Resource *r) {
 
     info("%s warning: inactive\n", r->human_name);
     active_notif[r->type] = NULL;
-    notify_destroy(n);
+    pn_destroy_notifications(n);
 
     return 1;
 }
