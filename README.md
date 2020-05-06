@@ -64,7 +64,7 @@ workloads.
 users. See [this
 discussion](https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name).
 
-## Format
+### Config format
 
 The update interval in seconds is specified with `update [int]`. The default is
 `update 5` if unspecified.
@@ -78,5 +78,27 @@ Thresholds are specified with fields in the following format:
    [here](https://facebookmicrosites.github.io/psi/docs/overview#pressure-metric-definitions).
 4. The PSI time period. `avg10`, `avg60`, and `avg300` are currently supported.
 5. The threshold, as a real number between 0 and 100. Decimals are ok.
+
+## Comparison with oomd
+
+[oomd](https://github.com/facebookincubator/oomd) and psi-notify are two
+compatible and complementary projects -- they're not in opposition to each
+other. oomd also uses PSI metrics, but it requires a policy about "what to
+kill" in high-pressure scenarios. For example, on a web server we obviously
+don't want to kill the web server if we can avoid that, so we should prioritise
+other applications. On the desktop though, it's hard to say: should we kill
+Chrome, or some IDE, or maybe something playing a movie? It's extremely
+difficult (although perhaps possible) to produce a single configuration that
+will do the right thing in even the majority of cases, so we opt to alert early
+instead and have the user make the decision about what's high priority in their
+user session. When integrating oomd for the desktop, most distributions will
+likely end up having to make it less aggressive than would be ideal, so they
+can still interoperate.
+
+It's hard to produce a good policy for, say, one's working day, where at one
+time my terminal is the most critical thing, at another my browser is, and at
+another it's my mail client. At other times maybe I'm ok with the slowdown and
+am willing to ride it out without killing anything. psi-notify sidesteps this
+problem by simply notifying, rather than taking action.
 
 [sd_notify]: https://www.freedesktop.org/software/systemd/man/sd_notify.html
