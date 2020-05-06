@@ -64,8 +64,8 @@ threshold memory some avg10 10.00
 threshold io some avg10 10.00
 ```
 
-The above is the default configuration if no config file exists. You may likely
-have to tweak these depending on your hardware, machine behaviour, and normal
+The above is the default configuration if no config file exists. You may have
+to tweak these depending on your hardware, machine behaviour, and normal
 workloads.
 
 ⁺ PSI has poll() support, but it's not currently available to unprivileged
