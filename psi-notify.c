@@ -9,14 +9,14 @@
 #include <unistd.h>
 
 #ifdef WANT_SD_NOTIFY
-#include <systemd/sd-daemon.h>
+    #include <systemd/sd-daemon.h>
 #else /* !WANT_SD_NOTIFY */
-#define sd_notify(reset_env, state)                                            \
-    do {                                                                       \
-    } while (0)
-#define sd_notifyf(reset_env, fmt, ...)                                        \
-    do {                                                                       \
-    } while (0)
+    #define sd_notify(reset_env, state)                                        \
+        do {                                                                   \
+        } while (0)
+    #define sd_notifyf(reset_env, fmt, ...)                                    \
+        do {                                                                   \
+        } while (0)
 #endif /* WANT_SD_NOTIFY */
 
 #define info(format, ...) printf("INFO: " format, __VA_ARGS__)
