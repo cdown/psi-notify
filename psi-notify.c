@@ -452,8 +452,7 @@ static int pressure_check(Resource *r) {
     ret = 0;
 
 out_fclose:
-    if (f)
-        fclose(f);
+    fclose(f);
     return ret;
 }
 
