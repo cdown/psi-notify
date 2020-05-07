@@ -457,6 +457,11 @@ out_fclose:
     return ret;
 }
 
+#define LOG_ALERT_STATE(r, state)                                              \
+    expect(*r->human_name);                                                    \
+    info("%c%s alert: %s\n", toupper(r->human_name[0]), r->human_name + 1,     \
+         state)
+
 /* 0 means already active, 1 means newly active. */
 static int alert_user_if_new(Resource *r) {
     if (active_notif[r->type]) {
@@ -464,8 +469,7 @@ static int alert_user_if_new(Resource *r) {
         return 0;
     }
 
-    info("%c%s warning: active\n", toupper(r->human_name[0]),
-         r->human_name + 1);
+    LOG_ALERT_STATE(r, "active");
     active_notif[r->type] = alert_user(r->human_name);
     return 1;
 }
@@ -479,8 +483,7 @@ static int alert_stop(Resource *r) {
         return 0;
     }
 
-    info("%c%s warning: inactive\n", toupper(r->human_name[0]),
-         r->human_name + 1);
+    LOG_ALERT_STATE(r, "inactive");
     active_notif[r->type] = NULL;
     alert_destroy(n);
 
