@@ -333,6 +333,12 @@ static int config_update_from_file(Config *c) {
                 warn("Ignoring <= 0 update interval: %d\n", rvalue);
                 continue;
             }
+            if (rvalue > 1800) {
+                /* WATCHDOG_USEC must still fit in a uint */
+                warn("Clamping update interval to 1800 from %d\n", rvalue);
+                rvalue = 1800;
+            }
+
             c->update_interval = rvalue;
         } else {
             warn("Invalid config line, ignoring: %s", line);
