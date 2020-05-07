@@ -7,8 +7,8 @@ crawl.**
 psi-notify is a minimal unprivileged notifier for system-wide resource pressure
 using [PSI](https://facebookmicrosites.github.io/psi/). This can help you to
 identify misbehaving applications on your machine before they start to severely
-impact system responsiveness, in a way which `MemAvailable` or other metrics
-cannot.
+impact system responsiveness, in a way which `MemAvailable`, CPU graphs, I/O
+utilisation graphs and other metrics cannot.
 
 ## Demo
 
