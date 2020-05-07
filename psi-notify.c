@@ -464,7 +464,8 @@ static int alert_user_if_new(Resource *r) {
         return 0;
     }
 
-    info("%s warning: active\n", r->human_name);
+    info("%c%s warning: active\n", toupper(r->human_name[0]),
+         r->human_name + 1);
     active_notif[r->type] = alert_user(r->human_name);
     return 1;
 }
@@ -478,7 +479,8 @@ static int alert_stop(Resource *r) {
         return 0;
     }
 
-    info("%s warning: inactive\n", r->human_name);
+    info("%c%s warning: inactive\n", toupper(r->human_name[0]),
+         r->human_name + 1);
     active_notif[r->type] = NULL;
     alert_destroy(n);
 
