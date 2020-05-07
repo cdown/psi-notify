@@ -5,7 +5,7 @@ ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 Environment=DISPLAY=:0
 
-# Will be updated by update_watchdog_usec() once we parsed the config
+# Will be updated by watchdog_update_usec() once we parsed the config
 WatchdogSec=2s
 
 [Install]
