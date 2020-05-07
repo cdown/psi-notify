@@ -267,7 +267,7 @@ static int config_update_from_file(Config *c) {
                         base_dir) > 0);
     }
 
-    f = fopen(config_path, "r");
+    f = fopen(config_path, "re");
 
     if (f) {
         config_reset_user_facing(c);
@@ -427,7 +427,7 @@ static int pressure_check(Resource *r) {
         return 0;
     }
 
-    f = fopen(r->filename, "r");
+    f = fopen(r->filename, "re");
 
     if (!f) {
         perror(r->filename);
