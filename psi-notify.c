@@ -299,6 +299,7 @@ static int config_update_from_file(Config *c) {
     while (fgets(line, sizeof(line), f)) {
         char lvalue[CONFIG_LINE_MAX];
         unsigned int rvalue;
+        size_t len = strlen(line);
 
         if (is_blank(line)) {
             continue;
@@ -308,7 +309,7 @@ static int config_update_from_file(Config *c) {
             continue;
         }
 
-        if (line[strlen(line) - 1] != '\n') {
+        if (len == CONFIG_LINE_MAX - 1 && line[len - 1] != '\n') {
             int ch;
             warn("Config line is too long to be valid, ignoring: %s\n", line);
             while ((ch = fgetc(f)) != EOF && ch != '\n')
