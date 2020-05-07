@@ -505,6 +505,38 @@ static void pressure_check_notify_if_new(Resource *r) {
     }
 }
 
+#define SEC_TO_NSEC 1000000000
+
+static void suspend_for_remaining_interval(Config *c, struct timespec *in) {
+    struct timespec out, remaining;
+
+    expect(clock_gettime(CLOCK_MONOTONIC, &out) == 0);
+
+    if (out.tv_nsec - in->tv_nsec < 0) {
+        remaining.tv_sec = out.tv_sec - in->tv_sec - 1;
+        remaining.tv_nsec = out.tv_nsec - in->tv_nsec + SEC_TO_NSEC;
+    } else {
+        remaining.tv_sec = out.tv_sec - in->tv_sec;
+        remaining.tv_nsec = out.tv_nsec - in->tv_nsec;
+    }
+
+    remaining.tv_sec = (c->update_interval - remaining.tv_sec - 1);
+    remaining.tv_nsec = (SEC_TO_NSEC - remaining.tv_nsec);
+
+    if (remaining.tv_nsec == SEC_TO_NSEC) {
+        remaining.tv_sec += 1;
+        remaining.tv_nsec = 0;
+    }
+
+    if (remaining.tv_sec >= c->update_interval) {
+        warn("Timer elapsed %d seconds before we completed one event loop\n",
+             c->update_interval);
+        return;
+    }
+
+    expect(nanosleep(&remaining, NULL) == 0 || errno == EINTR);
+}
+
 int main(int argc, char *argv[]) {
     Config config;
 
@@ -527,6 +559,10 @@ int main(int argc, char *argv[]) {
      * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
      */
     while (run) {
+        struct timespec in;
+
+        expect(clock_gettime(CLOCK_MONOTONIC, &in) == 0);
+
         sd_notify(0, "READY=1\nWATCHDOG=1\n"
                      "STATUS=Checking current pressures...");
         pressure_check_notify_if_new(&config.cpu);
@@ -541,7 +577,7 @@ int main(int argc, char *argv[]) {
             config_reload_pending = 0;
         } else if (run) {
             sd_notify(0, "STATUS=Waiting for next interval.");
-            sleep(config.update_interval);
+            suspend_for_remaining_interval(&config, &in);
         }
     }
 
