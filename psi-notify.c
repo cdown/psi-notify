@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <time.h>
 #include <unistd.h>
 
 #ifdef WANT_SD_NOTIFY
@@ -70,7 +69,7 @@ static const bool fuzzer_active = false;
 #endif
 
 static int fuzzer_cur_iter = 0;       /* We do multiple to vary alerts */
-static const int fuzzer_max_iter = 3; /* Max iterations for one AFL exec */
+static const int fuzzer_max_iter = 5; /* Max iterations for one AFL exec */
 
 static NotifyNotification *active_notif[] = {
     [RT_CPU] = NULL,
@@ -418,7 +417,7 @@ static int pressure_check_single_line(FILE *f, Resource *r) {
     }
 
     if (fuzzer_active) {
-        return (rand() % 3) - 1;
+        return (fuzzer_cur_iter % 3) - 1; /* -EPERM, then ok, then not ok. */
     } else if (strcmp("some", type) == 0) {
         return COMPARE_THRESH(r->thresholds.ten.some, ten) ||
                COMPARE_THRESH(r->thresholds.sixty.some, sixty) ||
@@ -563,7 +562,6 @@ int main(int argc, char *argv[]) {
     (void)argv;
 
 #ifdef WANT_FUZZER
-    srand(time(NULL)); /* For alert selection */
     fuzzer_active = getenv("FUZZ");
 #endif
 
