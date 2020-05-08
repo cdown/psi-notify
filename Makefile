@@ -42,6 +42,7 @@ debug: CFLAGS+=-Og -ggdb -fno-omit-frame-pointer
 debug: all
 
 fuzz: CC=afl-gcc
+fuzz: CFLAGS+=-DWANT_FUZZER
 fuzz: export AFL_HARDEN=1
 fuzz: debug
 	mkdir -p fuzz/generated-configs

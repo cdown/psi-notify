@@ -62,6 +62,15 @@ typedef struct {
 static volatile sig_atomic_t config_reload_pending = 0; /* SIGHUP */
 static volatile sig_atomic_t run = 1;                   /* SIGTERM, SIGINT */
 
+#ifdef WANT_FUZZER
+static bool fuzzer_active; /* Is AFL active? */
+#else
+static const bool fuzzer_active = false;
+#endif
+
+static int fuzzer_cur_iter = 0;        /* We do multiple to vary alerts */
+static const int fuzzer_max_iter = 10; /* Max iterations for one AFL exec */
+
 static NotifyNotification *active_notif[] = {
     [RT_CPU] = NULL,
     [RT_MEMORY] = NULL,
@@ -511,6 +520,11 @@ static void pressure_check_notify_if_new(Resource *r) {
 static void suspend_for_remaining_interval(Config *c, struct timespec *in) {
     struct timespec out, remaining;
 
+    if (fuzzer_active) {
+        /* Go as fast as possible. */
+        return;
+    }
+
     expect(clock_gettime(CLOCK_MONOTONIC, &out) == 0);
 
     if (out.tv_nsec - in->tv_nsec < 0) {
@@ -540,9 +554,12 @@ static void suspend_for_remaining_interval(Config *c, struct timespec *in) {
 
 int main(int argc, char *argv[]) {
     Config config;
-    bool in_fuzzer = getenv("FUZZ");
 
     (void)argv;
+
+#ifdef WANT_FUZZER
+    fuzzer_active = getenv("FUZZ");
+#endif
 
     if (argc != 1) {
         warn("%s doesn't accept any arguments.\n", argv[0]);
@@ -563,9 +580,10 @@ int main(int argc, char *argv[]) {
     while (run) {
         struct timespec in;
 
-        if (in_fuzzer) {
-            /* Running under AFL, just run once. */
-            run = 0;
+        if (fuzzer_active) {
+            if (fuzzer_cur_iter++ > fuzzer_max_iter) {
+                run = 0;
+            }
         }
 
         expect(clock_gettime(CLOCK_MONOTONIC, &in) == 0);
