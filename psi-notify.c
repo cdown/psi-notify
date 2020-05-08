@@ -501,7 +501,7 @@ static void pressure_check_notify_if_new(Resource *r) {
         alert_user_if_new(r);
         break;
     default:
-        warn("Error getting %s pressure: %s\n", r->human_name, strerror(ret));
+        warn("Error getting %s pressure: %s\n", r->human_name, strerror(abs(ret)));
         break;
     }
 }
