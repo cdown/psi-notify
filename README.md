@@ -56,6 +56,8 @@ The above is the default configuration if no config file exists. You may have
 to tweak these depending on your hardware, machine behaviour, and normal
 workloads.
 
+You can reload the config without restarting by sending `SIGHUP` to psi-notify.
+
 Look at the "config format" section below to find out more about what a valid
 config looks like.
 
