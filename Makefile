@@ -41,8 +41,14 @@ sanitisers: debug
 debug: CFLAGS+=-Og -ggdb -fno-omit-frame-pointer
 debug: all
 
+fuzz: CC=afl-gcc
+fuzz: export AFL_HARDEN=1
+fuzz: debug
+	mkdir -p fuzz/generated-configs
+	XDG_CONFIG_DIR=fuzz/generated-configs FUZZ=1 afl-fuzz -i fuzz/testcases -o fuzz/results -f fuzz/generated-configs/psi-notify ./psi-notify
+
 clang-tidy:
-	-clang-tidy psi-notify.c -checks=-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -- $(CFLAGS) $(LDFLAGS)
+	clang-tidy psi-notify.c -checks=-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -- $(CFLAGS) $(LDFLAGS)
 
 clean:
-	-rm -f $(EXECUTABLES)
+	rm -f $(EXECUTABLES)

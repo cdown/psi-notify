@@ -3,6 +3,7 @@
 #include <libnotify/notify.h>
 #include <linux/limits.h>
 #include <pwd.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -539,6 +540,7 @@ static void suspend_for_remaining_interval(Config *c, struct timespec *in) {
 
 int main(int argc, char *argv[]) {
     Config config;
+    bool in_fuzzer = getenv("FUZZ");
 
     (void)argv;
 
@@ -560,6 +562,11 @@ int main(int argc, char *argv[]) {
      */
     while (run) {
         struct timespec in;
+
+        if (in_fuzzer) {
+            /* Running under AFL, just run once. */
+            run = 0;
+        }
 
         expect(clock_gettime(CLOCK_MONOTONIC, &in) == 0);
 

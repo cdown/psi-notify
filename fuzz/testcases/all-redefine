@@ -1,0 +1,24 @@
+update 5
+
+threshold cpu some avg10 50.00
+threshold memory some avg10 10.00
+threshold io some avg10 10.00
+threshold cpu full avg10 50.00
+threshold memory full avg10 10.00
+threshold io full avg10 10.00
+threshold cpu some avg60 50.00
+threshold memory some avg60 10.00
+threshold io some avg60 10.00
+threshold cpu full avg60 50.00
+threshold memory full avg60 10.00
+threshold io full avg60 10.00
+threshold cpu some avg300 50.00
+threshold memory some avg300 10.00
+threshold io some avg300 10.00
+threshold cpu full avg300 50.00
+threshold memory full avg300 10.00
+threshold io full avg300 10.00
+
+threshold cpu some avg10 5.00
+threshold memory some avg10 1.00
+threshold io some avg10 1.00
