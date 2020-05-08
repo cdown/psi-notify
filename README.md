@@ -30,13 +30,8 @@ On Arch, the [psi-notify AUR
 package](https://aur.archlinux.org/packages/psi-notify/) is available.
 
 Otherwise, manual installation is as simple as running `make` and putting the
-resulting `psi-notify` binary in your PATH. Make sure you have libnotify
+resulting `psi-notify` binary in your PATH. You will need `libnotify`
 installed.
-
-```
-$ make
-$ cp psi-notify /usr/local/bin
-```
 
 After that, you just start psi-notify. A systemd user service is packaged and
 can be used like so:
