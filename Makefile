@@ -43,7 +43,7 @@ debug: all
 
 fuzz-configs: CC=afl-gcc
 fuzz-configs: CFLAGS+=-DWANT_FUZZER
-fuzz-pressures: export AFL_HARDEN=1 AFL_USE_ASAN=1
+fuzz-configs: export AFL_HARDEN=1 AFL_USE_ASAN=1
 fuzz-configs: debug
 	mkdir -p fuzz/configs/generated
 	mv psi-notify psi-notify-fuzz-configs
