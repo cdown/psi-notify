@@ -63,13 +63,15 @@ static volatile sig_atomic_t config_reload_pending = 0; /* SIGHUP */
 static volatile sig_atomic_t run = 1;                   /* SIGTERM, SIGINT */
 
 #ifdef WANT_FUZZER
-static bool fuzzer_active; /* Is AFL active? */
+static bool fuzzer_active;       /* Is AFL active? */
+static char *fuzz_pressure_path; /* Is pressure fuzzing mode active? */
 #else
 static const bool fuzzer_active = false;
+static const char *fuzz_pressure_path = NULL;
 #endif
 
-static int fuzzer_cur_iter = 0;       /* We do multiple to vary alerts */
-static const int fuzzer_max_iter = 5; /* Max iterations for one AFL exec */
+static int fuzzer_cur_iter = 0; /* We do multiple to vary alerts */
+static int fuzzer_max_iter = 5; /* Max iterations for one AFL exec */
 
 static NotifyNotification *active_notif[] = {
     [RT_CPU] = NULL,
@@ -150,6 +152,19 @@ static char *get_psi_filename(char *resource) {
 
     path = malloc(PRESSURE_PATH_MAX);
     expect(path);
+
+    if (fuzzer_active && fuzz_pressure_path) {
+        /*
+         * We're in pressure file fuzzing mode, the config is static. Still
+         * copy it over so we can free(path) regardless in teardown.
+         */
+        expect(snprintf(path, PRESSURE_PATH_MAX, "%s", fuzz_pressure_path) > 0);
+        expect(access(path, R_OK) == 0);
+
+        /* No need to run a bunch of times, it's gonna have the same result. */
+        fuzzer_max_iter = 1;
+        return path;
+    }
 
     expect(snprintf(path, PRESSURE_PATH_MAX,
                     "/sys/fs/cgroup/user.slice/user-%d.slice/%s.pressure",
@@ -563,6 +578,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef WANT_FUZZER
     fuzzer_active = getenv("FUZZ");
+    fuzz_pressure_path = getenv("FUZZ_PRESSURE_PATH");
 #endif
 
     if (argc != 1) {
@@ -586,7 +602,7 @@ int main(int argc, char *argv[]) {
 
         if (fuzzer_active) {
             if (fuzzer_cur_iter++ >= fuzzer_max_iter) {
-                run = 0;
+                break;
             }
         }
 

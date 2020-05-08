@@ -41,12 +41,19 @@ sanitisers: debug
 debug: CFLAGS+=-Og -ggdb -fno-omit-frame-pointer
 debug: all
 
-fuzz: CC=afl-gcc
-fuzz: CFLAGS+=-DWANT_FUZZER
-fuzz: export AFL_HARDEN=1
-fuzz: debug
-	mkdir -p fuzz/generated-configs
-	XDG_CONFIG_DIR=fuzz/generated-configs FUZZ=1 afl-fuzz -i fuzz/testcases -o fuzz/results -f fuzz/generated-configs/psi-notify ./psi-notify
+fuzz-configs: CC=afl-gcc
+fuzz-configs: CFLAGS+=-DWANT_FUZZER
+fuzz-configs: export AFL_HARDEN=1
+fuzz-configs: debug
+	mkdir -p fuzz/configs/generated
+	XDG_CONFIG_DIR=fuzz/configs/generated FUZZ=1 afl-fuzz -i fuzz/configs/testcases -o fuzz/configs/results -f fuzz/configs/generated/psi-notify ./psi-notify
+
+fuzz-pressures: CC=afl-gcc
+fuzz-pressures: CFLAGS+=-DWANT_FUZZER
+fuzz-pressures: export AFL_HARDEN=1
+fuzz-pressures: debug
+	mkdir -p fuzz/pressures/generated
+	XDG_CONFIG_DIR=fuzz/pressures/generated FUZZ=1 FUZZ_PRESSURE_PATH=fuzz/pressures/generated/pressures afl-fuzz -i fuzz/pressures/testcases -o fuzz/pressures/results -f fuzz/pressures/generated/pressures ./psi-notify
 
 clang-tidy:
 	clang-tidy psi-notify.c -checks=-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -- $(CFLAGS) $(LDFLAGS)
