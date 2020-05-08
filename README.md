@@ -29,6 +29,8 @@ utilisation graphs and other metrics cannot.
 On Arch, the [psi-notify AUR
 package](https://aur.archlinux.org/packages/psi-notify/) is available.
 
+On Fedora and RHEL/CentOS 8, the [psi-notify](https://src.fedoraproject.org/rpms/psi-notify) is available. For RHEL/CentOS you need to enable the [Extra Packages for Enterprise Linux](https://fedoraproject.org/wiki/EPEL) repository.
+
 Otherwise, manual installation is as simple as running `make` and putting the
 resulting `psi-notify` binary in your PATH. You will need `libnotify`
 installed.
