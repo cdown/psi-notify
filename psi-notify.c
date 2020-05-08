@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 #ifdef WANT_SD_NOTIFY
@@ -68,8 +69,8 @@ static bool fuzzer_active; /* Is AFL active? */
 static const bool fuzzer_active = false;
 #endif
 
-static int fuzzer_cur_iter = 0;        /* We do multiple to vary alerts */
-static const int fuzzer_max_iter = 10; /* Max iterations for one AFL exec */
+static int fuzzer_cur_iter = 0;       /* We do multiple to vary alerts */
+static const int fuzzer_max_iter = 3; /* Max iterations for one AFL exec */
 
 static NotifyNotification *active_notif[] = {
     [RT_CPU] = NULL,
@@ -119,11 +120,13 @@ static NotifyNotification *alert_user(const char *resource) {
         title, "Consider reducing demand on this resource.", NULL);
     notify_notification_set_urgency(n, NOTIFY_URGENCY_CRITICAL);
 
-    if (!notify_notification_show(n, &err)) {
-        warn("Cannot display notification: %s\n", err->message);
-        g_error_free(err);
-        alert_destroy(n);
-        n = NULL;
+    if (!fuzzer_active) {
+        if (!notify_notification_show(n, &err)) {
+            warn("Cannot display notification: %s\n", err->message);
+            g_error_free(err);
+            alert_destroy(n);
+            n = NULL;
+        }
     }
 
     return n;
@@ -414,7 +417,9 @@ static int pressure_check_single_line(FILE *f, Resource *r) {
         return -EINVAL;
     }
 
-    if (strcmp("some", type) == 0) {
+    if (fuzzer_active) {
+        return (rand() % 3) - 1;
+    } else if (strcmp("some", type) == 0) {
         return COMPARE_THRESH(r->thresholds.ten.some, ten) ||
                COMPARE_THRESH(r->thresholds.sixty.some, sixty) ||
                COMPARE_THRESH(r->thresholds.three_hundred.some, three_hundred);
@@ -558,6 +563,7 @@ int main(int argc, char *argv[]) {
     (void)argv;
 
 #ifdef WANT_FUZZER
+    srand(time(NULL)); /* For alert selection */
     fuzzer_active = getenv("FUZZ");
 #endif
 
@@ -581,7 +587,7 @@ int main(int argc, char *argv[]) {
         struct timespec in;
 
         if (fuzzer_active) {
-            if (fuzzer_cur_iter++ > fuzzer_max_iter) {
+            if (fuzzer_cur_iter++ >= fuzzer_max_iter) {
                 run = 0;
             }
         }
