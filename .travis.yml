@@ -19,7 +19,7 @@ jobs:
     - name: Fuzz config files
       script:
       - sudo sh -c 'echo core > /proc/sys/kernel/core_pattern'
-      - 'travis_wait 30 timeout -s INT --preserve-status 30m make fuzz-configs; [[ $? == 130 ]]'
+      - 'timeout -s INT --preserve-status 10m make fuzz-configs; [[ $? == 130 ]]'
       - 'if (( "$(ls -A fuzz/pressures/results/crashes | wc -l)" != 0 )); then grep . fuzz/pressures/results/crashes/*; exit 1; fi'
 
     - name: Build
