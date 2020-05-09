@@ -10,20 +10,32 @@ env: AFL_NO_UI=1
 
 jobs:
   include:
-    - script:
+    - name: Fuzz pressure files
+      script:
       - sudo sh -c 'echo core > /proc/sys/kernel/core_pattern'
       - 'timeout -s INT --preserve-status 5m make fuzz-pressures; [[ $? == 130 ]]'
       - 'if (( "$(ls -A fuzz/pressures/results/crashes | wc -l)" != 0 )); then grep . fuzz/pressures/results/crashes/*; exit 1; fi'
 
-    - script:
+    - name: Fuzz config files
+      script:
       - sudo sh -c 'echo core > /proc/sys/kernel/core_pattern'
       - 'travis_wait 30 timeout -s INT --preserve-status 30m make fuzz-configs; [[ $? == 130 ]]'
       - 'if (( "$(ls -A fuzz/pressures/results/crashes | wc -l)" != 0 )); then grep . fuzz/pressures/results/crashes/*; exit 1; fi'
 
-    - script: make
-    - script: make clang-tidy
-    - script: make clang-everything
+    - name: Build
+      script: make
 
-    - script: make WANT_SD_NOTIFY=0
-    - script: make clang-tidy WANT_SD_NOTIFY=0
-    - script: make clang-everything WANT_SD_NOTIFY=0
+    - name: Build clang-tidy
+      script: make clang-tidy
+
+    - name: Build clang-everything
+      script: make clang-everything
+
+    - name: Build (WANT_SD_NOTIFY=0)
+      script: make WANT_SD_NOTIFY=0
+
+    - name: Build clang-tidy (WANT_SD_NOTIFY=0)
+      script: make clang-tidy WANT_SD_NOTIFY=0
+
+    - name: Build clang-everything (WANT_SD_NOTIFY=0)
+      script: make clang-everything WANT_SD_NOTIFY=0
