@@ -539,6 +539,31 @@ static void suspend_for_remaining_interval(Config *c, struct timespec *in) {
     expect(nanosleep(&remaining, NULL) == 0 || errno == EINTR);
 }
 
+/* If running under AFL, just run the code and exit. Returns 1 if fuzzing. */
+static int check_fuzzers(void) {
+    Config config;
+    char *fuzz_pressure_file = getenv("FUZZ_PRESSURES");
+
+    if (fuzz_pressure_file) {
+        Resource r;
+        memset(&r, 0, sizeof(r));
+        r.filename = fuzz_pressure_file;
+        r.human_name = "FUZZ";
+        (void)pressure_check(&r);
+        return 1;
+    }
+
+    if (getenv("FUZZ_CONFIGS")) {
+        config_init(&config);
+        free(config.cpu.filename);
+        free(config.memory.filename);
+        free(config.io.filename);
+        return 1;
+    }
+
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
     Config config;
 
@@ -549,13 +574,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    config_init(&config);
-
-    if (getenv("FUZZ_CONFIGS")) {
-        /* All we wanted to do is fuzz configs, we're done. */
+    if (check_fuzzers()) {
+        /* We're just fuzzing, exit after that's done. */
         return 0;
     }
 
+    config_init(&config);
     expect(setvbuf(stdout, NULL, _IONBF, 0) == 0);
     configure_signal_handlers();
     expect(notify_init("psi-notify"));
