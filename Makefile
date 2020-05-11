@@ -48,13 +48,7 @@ afl: debug
 
 fuzz-configs: afl
 	mkdir -p fuzz/configs/generated
-	mv psi-notify psi-notify-fuzz-configs
-	UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1 XDG_CONFIG_DIR=fuzz/configs/generated FUZZ=1 afl-fuzz -i fuzz/configs/testcases -o fuzz/configs/results -f fuzz/configs/generated/psi-notify -m none ./psi-notify-fuzz-configs
-
-fuzz-pressures: afl
-	mkdir -p fuzz/pressures/generated
-	mv psi-notify psi-notify-fuzz-pressures
-	UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1 XDG_CONFIG_DIR=/dev/null FUZZ=1 FUZZ_PRESSURE_PATH=fuzz/pressures/generated/pressures afl-fuzz -i fuzz/pressures/testcases -o fuzz/pressures/results -f fuzz/pressures/generated/pressures -m none ./psi-notify-fuzz-pressures
+	UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1 XDG_CONFIG_DIR=fuzz/configs/generated FUZZ=1 afl-fuzz -i fuzz/configs/testcases -o fuzz/configs/results -f fuzz/configs/generated/psi-notify -m none ./psi-notify
 
 clang-tidy:
 	clang-tidy psi-notify.c -checks=-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -- $(CFLAGS) $(LDFLAGS)

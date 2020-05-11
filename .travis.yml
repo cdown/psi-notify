@@ -10,12 +10,6 @@ env: AFL_NO_UI=1
 
 jobs:
   include:
-    - name: Fuzz pressure files
-      script:
-      - sudo sh -c 'echo core > /proc/sys/kernel/core_pattern'
-      - 'timeout -s INT --preserve-status 5m make fuzz-pressures; [[ $? == 130 ]]'
-      - 'if (( "$(ls -A fuzz/pressures/results/crashes | wc -l)" != 0 )); then grep . fuzz/pressures/results/crashes/*; exit 1; fi'
-
     - name: Fuzz config files
       script:
       - sudo sh -c 'echo core > /proc/sys/kernel/core_pattern'
