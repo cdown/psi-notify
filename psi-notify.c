@@ -62,15 +62,6 @@ typedef struct {
 static volatile sig_atomic_t config_reload_pending = 0; /* SIGHUP */
 static volatile sig_atomic_t run = 1;                   /* SIGTERM, SIGINT */
 
-#ifdef WANT_FUZZER
-static bool fuzzer_active;       /* Is AFL active? */
-#else
-static const bool fuzzer_active = false;
-#endif
-
-static int fuzzer_cur_iter = 0; /* We do multiple to vary alerts */
-static int fuzzer_max_iter = 5; /* Max iterations for one AFL exec */
-
 static NotifyNotification *active_notif[] = {
     [RT_CPU] = NULL,
     [RT_MEMORY] = NULL,
@@ -119,13 +110,11 @@ static NotifyNotification *alert_user(const char *resource) {
         title, "Consider reducing demand on this resource.", NULL);
     notify_notification_set_urgency(n, NOTIFY_URGENCY_CRITICAL);
 
-    if (!fuzzer_active) {
-        if (!notify_notification_show(n, &err)) {
-            warn("Cannot display notification: %s\n", err->message);
-            g_error_free(err);
-            alert_destroy(n);
-            n = NULL;
-        }
+    if (!notify_notification_show(n, &err)) {
+        warn("Cannot display notification: %s\n", err->message);
+        g_error_free(err);
+        alert_destroy(n);
+        n = NULL;
     }
 
     return n;
@@ -416,9 +405,7 @@ static int pressure_check_single_line(FILE *f, Resource *r) {
         return -EINVAL;
     }
 
-    if (fuzzer_active) {
-        return (fuzzer_cur_iter % 3) - 1; /* -EPERM, then ok, then not ok. */
-    } else if (strcmp("some", type) == 0) {
+    if (strcmp("some", type) == 0) {
         return COMPARE_THRESH(r->thresholds.ten.some, ten) ||
                COMPARE_THRESH(r->thresholds.sixty.some, sixty) ||
                COMPARE_THRESH(r->thresholds.three_hundred.some, three_hundred);
@@ -524,11 +511,6 @@ static void pressure_check_notify_if_new(Resource *r) {
 static void suspend_for_remaining_interval(Config *c, struct timespec *in) {
     struct timespec out, remaining;
 
-    if (fuzzer_active) {
-        /* Go as fast as possible. */
-        return;
-    }
-
     expect(clock_gettime(CLOCK_MONOTONIC, &out) == 0);
 
     if (out.tv_nsec - in->tv_nsec < 0) {
@@ -561,17 +543,19 @@ int main(int argc, char *argv[]) {
 
     (void)argv;
 
-#ifdef WANT_FUZZER
-    fuzzer_active = getenv("FUZZ");
-#endif
-
     if (argc != 1) {
         warn("%s doesn't accept any arguments.\n", argv[0]);
         return 1;
     }
 
-    expect(setvbuf(stdout, NULL, _IONBF, 0) == 0);
     config_init(&config);
+
+    if (getenv("FUZZ_CONFIGS")) {
+        /* All we wanted to do is fuzz configs, we're done. */
+        return 0;
+    }
+
+    expect(setvbuf(stdout, NULL, _IONBF, 0) == 0);
     configure_signal_handlers();
     expect(notify_init("psi-notify"));
 
@@ -583,12 +567,6 @@ int main(int argc, char *argv[]) {
      */
     while (run) {
         struct timespec in;
-
-        if (fuzzer_active) {
-            if (fuzzer_cur_iter++ >= fuzzer_max_iter) {
-                break;
-            }
-        }
 
         expect(clock_gettime(CLOCK_MONOTONIC, &in) == 0);
 
