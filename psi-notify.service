@@ -1,9 +1,9 @@
 [Service]
+ExecStart=psi-notify
+ExecReload=kill -HUP $MAINPID
 Type=notify
-ExecStart=/usr/bin/psi-notify
-ExecReload=/bin/kill -HUP $MAINPID
+
 Restart=always
-Environment=DISPLAY=:0
 
 # Will be updated by watchdog_update_usec() once we parsed the config
 WatchdogSec=2s
