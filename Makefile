@@ -34,17 +34,16 @@ clang-everything: CC=clang
 clang-everything: CFLAGS+=-Weverything -Wno-disabled-macro-expansion -Wno-padded -Wno-unused-macros
 clang-everything: all
 
-sanitisers: CC=gcc
 sanitisers: CFLAGS+=-fsanitize=address -fsanitize=undefined
 sanitisers: debug
 
-debug: CFLAGS+=-Og -ggdb -fno-omit-frame-pointer -fsanitize=address -fsanitize=undefined
+debug: CFLAGS+=-Og -ggdb -fno-omit-frame-pointer
 debug: all
 
 afl: CC=afl-gcc
 afl: CFLAGS+=-DWANT_FUZZER
 afl: export AFL_HARDEN=1 AFL_USE_ASAN=1
-afl: debug
+afl: sanitisers
 
 fuzz-configs: afl
 	fuzz/configs/run
