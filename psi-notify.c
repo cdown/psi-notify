@@ -234,14 +234,14 @@ static void config_reset_user_facing(Config *c) {
 
 #define WATCHDOG_GRACE_PERIOD_SEC 5
 #define SEC_TO_USEC 1000000
-static void watchdog_update_usec(Config *c) {
+static void watchdog_update_usec(const Config *c) {
     (void)c;
     sd_notifyf(0, "WATCHDOG_USEC=%d",
                (c->update_interval + WATCHDOG_GRACE_PERIOD_SEC) * SEC_TO_USEC);
 }
 
 static int config_update_from_file(Config *c) {
-    struct passwd *pw = getpwuid(getuid());
+    const struct passwd *pw = getpwuid(getuid());
     char line[CONFIG_LINE_MAX];
     char config_path[PATH_MAX];
     char *base_dir;
@@ -386,8 +386,8 @@ static void config_init(Config *c) {
 #define COMPARE_THRESH(threshold, current)                                     \
     (threshold >= 0 && current > threshold)
 
-static int pressure_check_single_line(FILE *f, Resource *r) {
-    char *start;
+static int pressure_check_single_line(FILE *f, const Resource *r) {
+    const char *start;
     char line[PRESSURE_LINE_LEN];
     char type[PRESSURE_LINE_LEN];
     double ten, sixty, three_hundred;
@@ -464,7 +464,7 @@ out_fclose:
          state)
 
 /* 0 means already active, 1 means newly active. */
-static int alert_user_if_new(Resource *r) {
+static int alert_user_if_new(const Resource *r) {
     if (active_notif[r->type]) {
         /* We already have an active warning, nothing to do. */
         return 0;
@@ -476,7 +476,7 @@ static int alert_user_if_new(Resource *r) {
 }
 
 /* 0 means already inactive, 1 means newly inactive. */
-static int alert_stop(Resource *r) {
+static int alert_stop(const Resource *r) {
     NotifyNotification *n = active_notif[r->type];
 
     if (!n) {
@@ -510,7 +510,8 @@ static void pressure_check_notify_if_new(Resource *r) {
 
 #define SEC_TO_NSEC 1000000000
 
-static void suspend_for_remaining_interval(Config *c, struct timespec *in) {
+static void suspend_for_remaining_interval(const Config *c,
+                                           const struct timespec *in) {
     struct timespec out, remaining;
 
     if (c->update_interval == 0) {
