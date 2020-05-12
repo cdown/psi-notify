@@ -235,7 +235,7 @@ static void config_reset_user_facing(Config *c) {
 #define WATCHDOG_GRACE_PERIOD_SEC 5
 #define SEC_TO_USEC 1000000
 static void watchdog_update_usec(Config *c) {
-    expect(c->update_interval > 0);
+    (void)c;
     sd_notifyf(0, "WATCHDOG_USEC=%d",
                (c->update_interval + WATCHDOG_GRACE_PERIOD_SEC) * SEC_TO_USEC);
 }
@@ -299,7 +299,7 @@ static int config_update_from_file(Config *c) {
 
     while (fgets(line, sizeof(line), f)) {
         char lvalue[CONFIG_LINE_MAX];
-        unsigned int rvalue;
+        int rvalue;
         size_t len = strlen(line);
 
         if (is_blank(line)) {
@@ -326,12 +326,12 @@ static int config_update_from_file(Config *c) {
         if (strcmp(lvalue, "threshold") == 0) {
             threshold_update(c, line);
         } else if (strcmp(lvalue, "update") == 0) {
-            if (sscanf(line, "%s %u", lvalue, &rvalue) != 2) {
+            if (sscanf(line, "%s %d", lvalue, &rvalue) != 2) {
                 warn("Invalid config line, ignoring: %s", line);
                 continue;
             }
-            if (rvalue <= 0) {
-                warn("Ignoring <= 0 update interval: %d\n", rvalue);
+            if (rvalue < 0) {
+                warn("Ignoring <0 update interval: %d\n", rvalue);
                 continue;
             }
             if (rvalue > 1800) {
@@ -340,7 +340,8 @@ static int config_update_from_file(Config *c) {
                 rvalue = 1800;
             }
 
-            c->update_interval = rvalue;
+            /* Signed at first to avoid %u shenanigans with negatives */
+            c->update_interval = (unsigned int)rvalue;
         } else {
             warn("Invalid config line, ignoring: %s", line);
             continue;
@@ -511,6 +512,11 @@ static void pressure_check_notify_if_new(Resource *r) {
 
 static void suspend_for_remaining_interval(Config *c, struct timespec *in) {
     struct timespec out, remaining;
+
+    if (c->update_interval == 0) {
+        /* We're going as fast as possible. */
+        return;
+    }
 
     expect(clock_gettime(CLOCK_MONOTONIC, &out) == 0);
 
