@@ -49,6 +49,9 @@ afl: debug
 fuzz-configs: afl
 	fuzz/configs/run
 
+fuzz-pressures: afl
+	fuzz/pressures/run
+
 clang-tidy:
 	clang-tidy psi-notify.c -checks=-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -- $(CFLAGS) $(LDFLAGS)
 

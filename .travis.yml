@@ -16,6 +16,12 @@ jobs:
       - 'timeout -s INT --preserve-status 10m make fuzz-configs; [[ $? == 130 ]]'
       - 'if (( "$(find fuzz/configs/results/*/crashes -type f | wc -l)" != 0 )); then grep . fuzz/configs/results/*/crashes/*; exit 1; fi'
 
+    - name: Fuzz pressure files
+      script:
+      - sudo sh -c 'echo core > /proc/sys/kernel/core_pattern'
+      - 'timeout -s INT --preserve-status 3m make fuzz-pressures; [[ $? == 130 ]]'
+      - 'if (( "$(find fuzz/pressures/results/*/crashes -type f | wc -l)" != 0 )); then grep . fuzz/pressures/results/*/crashes/*; exit 1; fi'
+
     - name: Build
       script: make
 

@@ -1,0 +1,20 @@
+#!/bin/bash -ex
+
+export UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1
+export AFL_NO_UI=1
+
+prefix=psi-notify-pressures-fuzz
+
+for (( i = 0; i < $(nproc); i++ )); do
+    afl_type=-S
+    num=$(printf '%02d' "$i")
+    (( i == 0 )) && afl_type=-M
+    config_dir=fuzz/pressures/generated/"$num"
+
+    mkdir -p -- "$config_dir"
+    FUZZ_PRESSURES=fuzz/pressures/generated/"$num"/pressures XDG_CONFIG_DIR=/dev/null \
+	afl-fuzz -i fuzz/pressures/testcases -o fuzz/pressures/results -f fuzz/pressures/generated/"$num"/pressures -m none \
+	"$afl_type" "$prefix-$num" ./psi-notify &
+done
+
+wait
