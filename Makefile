@@ -1,4 +1,4 @@
-CFLAGS+=-pedantic -Wall -Wextra -Werror $(shell pkg-config --cflags libnotify)
+CFLAGS+=-std=gnu99 -pedantic -Wall -Wextra -Werror $(shell pkg-config --cflags libnotify)
 LDFLAGS=$(shell pkg-config --libs libnotify)
 
 WANT_SD_NOTIFY=1
