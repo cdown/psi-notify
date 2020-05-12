@@ -240,18 +240,12 @@ static void watchdog_update_usec(const Config *c) {
                (c->update_interval + WATCHDOG_GRACE_PERIOD_SEC) * SEC_TO_USEC);
 }
 
-static int config_update_from_file(Config *c) {
+static void config_get_path(char *out) {
+    char *base_dir = getenv("XDG_CONFIG_DIR");
     const struct passwd *pw = getpwuid(getuid());
-    char line[CONFIG_LINE_MAX];
-    char config_path[PATH_MAX];
-    char *base_dir;
-    FILE *f;
-    int ret = 0;
-
-    base_dir = getenv("XDG_CONFIG_DIR");
 
     if (base_dir) {
-        expect(snprintf(config_path, PATH_MAX, "%s/psi-notify", base_dir) > 0);
+        expect(snprintf(out, PATH_MAX, "%s/psi-notify", base_dir) > 0);
     } else {
         base_dir = getenv("HOME");
         if (!base_dir) {
@@ -264,10 +258,17 @@ static int config_update_from_file(Config *c) {
             }
         }
 
-        expect(snprintf(config_path, PATH_MAX, "%s/.config/psi-notify",
-                        base_dir) > 0);
+        expect(snprintf(out, PATH_MAX, "%s/.config/psi-notify", base_dir) > 0);
     }
+}
 
+static int config_update_from_file(Config *c) {
+    char line[CONFIG_LINE_MAX];
+    char config_path[PATH_MAX];
+    FILE *f;
+    int ret = 0;
+
+    config_get_path(config_path);
     f = fopen(config_path, "re");
 
     if (f) {
