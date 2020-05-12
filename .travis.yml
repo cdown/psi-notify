@@ -14,6 +14,11 @@ env: AFL_NO_UI=1
 
 jobs:
   include:
+    - name: Run SonarCloud analysis
+      script:
+        - build-wrapper-linux-x86-64 --out-dir bw-output make clean all
+        - sonar-scanner -Dsonar.cfamily.build-wrapper-output=bw-output
+
     - name: Fuzz config files
       script:
       - sudo sh -c 'echo core > /proc/sys/kernel/core_pattern'
@@ -64,3 +69,11 @@ jobs:
         - make clean clang-tidy WANT_SD_NOTIFY=0
         - make clean clang-everything WANT_SD_NOTIFY=0
       arch: arm64
+
+addons:
+  sonarcloud:
+    organization: "cdown"
+    token:
+      # This isn't a plaintext secret, don't worry :-)
+      # See https://docs.travis-ci.com/user/encryption-keys/
+      secure: "QNebNU51gPIcXfv69igUUmlxbAi1bnJCigwqCybO6xK47r1AJbyUmOi7wsBRREMMBLM9J/U8ojddGP5tc7vp+v18EqCVXauFJcCsGi+hWcqG3juGZq+93ySS156QieriEwhSIY3+WUw87+2WzhmL2cpVUK7KoAVf/3uRqpFcLIWCEsiATnH0t4Sz9ttHy348XZYcteJZnPCfsIYW27a5gvJFrkvnEIxvD2R5+3D61bv+9RuDozKgYssxROu9rRvuLixdqxGFbRyvkatPXjhMKrYvV9A3mDhKvHn7qDhy5LxowLHsapYzt3Ulp1IKdfQFNS/C7zUNkcBVOLfsrJi+G0nyrdVqfXQIBYZekuyKkzcxfWECzxG7N8EcpF0HdnT8YAXF/f3OQbJ9sGqGleY957482wb+KuyliA97hsKv0moUZRzdn458D11GtvV51PVHeOFTzaSAfYfk6z/G1UFZL2lYSfXgmxmCd92HzR/PGKLJ5IjNYF+Y4GW/LnrUiULdCShhpyHzGIi9J3nglVxq9tsUWOQuJ81lsk+5YdPggbs4Dn5mq+PoJFJnwuQJoxAVGVtP2Jb6/NOtO4DDw38laNtoWJgD3cDxWjeFj+c5kNA8bPuCavLwz6oipZ7mzvzOfMkcu2wNjVjkJRf7/wOs/ypftRPHNTiedBuniA1kUqU="
