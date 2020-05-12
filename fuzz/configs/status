@@ -1,0 +1,3 @@
+#!/bin/bash -e
+
+exec afl-whatsup fuzz/configs/results

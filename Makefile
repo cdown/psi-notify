@@ -47,8 +47,7 @@ afl: export AFL_HARDEN=1 AFL_USE_ASAN=1
 afl: debug
 
 fuzz-configs: afl
-	mkdir -p fuzz/configs/generated
-	UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1 XDG_CONFIG_DIR=fuzz/configs/generated FUZZ_CONFIGS=1 afl-fuzz -i fuzz/configs/testcases -o fuzz/configs/results -f fuzz/configs/generated/psi-notify -m none ./psi-notify
+	fuzz/configs/run
 
 clang-tidy:
 	clang-tidy psi-notify.c -checks=-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -- $(CFLAGS) $(LDFLAGS)
