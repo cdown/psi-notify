@@ -53,6 +53,7 @@ fuzz-pressures: afl
 	fuzz/pressures/run
 
 clang-tidy:
+	# DeprecatedOrUnsafeBufferHandling: See https://stackoverflow.com/a/50724865/945780
 	clang-tidy psi-notify.c -checks=-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -- $(CFLAGS) $(LDFLAGS)
 
 clean:
