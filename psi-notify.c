@@ -418,7 +418,7 @@ static int pressure_check_single_line(FILE *f, const Resource *r) {
 }
 
 /* >0: above thresholds, 0: within thresholds, <0: error */
-static int pressure_check(Resource *r) {
+static int pressure_check(const Resource *r) {
     FILE *f;
     int ret = 0;
 
