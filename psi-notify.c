@@ -240,10 +240,10 @@ static void config_update_interval(Config *c, const char *line) {
     c->update_interval = (unsigned int)rvalue;
 }
 
-static int is_blank(const char *s) {
+static int blank_line_or_comment(const char *s) {
     while (isspace((unsigned char)*s))
         s++;
-    return *s == '\0';
+    return *s == '\0' || *s == '#';
 }
 
 static void config_reset_user_facing(Config *c) {
@@ -325,11 +325,7 @@ static int config_update_from_file(Config *c) {
         char lvalue[CONFIG_LINE_MAX];
         size_t len = strlen(line);
 
-        if (is_blank(line)) {
-            continue;
-        }
-
-        if (line[0] == '#') {
+        if (blank_line_or_comment(line)) {
             continue;
         }
 
