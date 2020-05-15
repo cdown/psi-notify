@@ -96,7 +96,7 @@ static void alert_destroy(NotifyNotification *n) {
     g_object_unref(G_OBJECT(n));
 }
 
-#define TITLE_MAX 22 /* len(b"High memory pressure!\0") */
+#define TITLE_MAX sizeof("High memory pressure!")
 
 static NotifyNotification *alert_user(const char *resource) {
     char title[TITLE_MAX];
@@ -131,8 +131,8 @@ static void alert_destroy_all_active(void) {
     }
 }
 
-/* len(b"/sys/fs/cgroup/user.slice/user-2147483647.slice/memory.pressure\0") */
-#define PRESSURE_PATH_MAX 64
+#define PRESSURE_PATH_MAX                                                      \
+    sizeof("/sys/fs/cgroup/user.slice/user-2147483647.slice/memory.pressure")
 
 static char *get_psi_filename(char *resource) {
     char *path;
