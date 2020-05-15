@@ -489,7 +489,7 @@ static int alert_stop(const Resource *r) {
     return 1;
 }
 
-static void pressure_check_notify_if_new(Resource *r) {
+static void pressure_check_notify_if_new(const Resource *r) {
     int ret = pressure_check(r);
 
     switch (ret) {
