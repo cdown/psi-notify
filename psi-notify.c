@@ -467,7 +467,6 @@ out_fclose:
 /* 0 means already active, 1 means newly active. */
 static int alert_user_if_new(const Resource *r) {
     if (active_notif[r->type]) {
-        /* We already have an active warning, nothing to do. */
         return 0;
     }
 
@@ -481,7 +480,6 @@ static int alert_stop(const Resource *r) {
     NotifyNotification *n = active_notif[r->type];
 
     if (!n) {
-        /* Already inactive, nothing to do. */
         return 0;
     }
 
@@ -516,7 +514,6 @@ static void suspend_for_remaining_interval(const Config *c,
     struct timespec out, remaining;
 
     if (c->update_interval == 0) {
-        /* We're going as fast as possible. */
         return;
     }
 
