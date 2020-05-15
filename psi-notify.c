@@ -161,7 +161,7 @@ static char *get_psi_filename(char *resource) {
 
 #define CONFIG_LINE_MAX 256
 
-static void threshold_update(Config *c, const char *line) {
+static void config_update_threshold(Config *c, const char *line) {
     char resource[CONFIG_LINE_MAX], type[CONFIG_LINE_MAX],
         interval[CONFIG_LINE_MAX];
     double threshold;
@@ -215,6 +215,29 @@ static void threshold_update(Config *c, const char *line) {
         warn("Invalid type in config, ignoring: '%s'\n", type);
         return;
     }
+}
+
+static void config_update_interval(Config *c, const char *line) {
+    int rvalue;
+
+    if (sscanf(line, "%*s %d", &rvalue) != 1) {
+        warn("Invalid config line, ignoring: %s", line);
+        return;
+    }
+
+    if (rvalue < 0) {
+        warn("Ignoring <0 update interval: %d\n", rvalue);
+        return;
+    }
+
+    if (rvalue > 1800) {
+        /* WATCHDOG_USEC must still fit in a uint */
+        warn("Clamping update interval to 1800 from %d\n", rvalue);
+        rvalue = 1800;
+    }
+
+    /* Signed at first to avoid %u shenanigans with negatives */
+    c->update_interval = (unsigned int)rvalue;
 }
 
 static int is_blank(const char *s) {
@@ -300,7 +323,6 @@ static int config_update_from_file(Config *c) {
 
     while (fgets(line, sizeof(line), f)) {
         char lvalue[CONFIG_LINE_MAX];
-        int rvalue;
         size_t len = strlen(line);
 
         if (is_blank(line)) {
@@ -325,24 +347,9 @@ static int config_update_from_file(Config *c) {
         }
 
         if (strcmp(lvalue, "threshold") == 0) {
-            threshold_update(c, line);
+            config_update_threshold(c, line);
         } else if (strcmp(lvalue, "update") == 0) {
-            if (sscanf(line, "%s %d", lvalue, &rvalue) != 2) {
-                warn("Invalid config line, ignoring: %s", line);
-                continue;
-            }
-            if (rvalue < 0) {
-                warn("Ignoring <0 update interval: %d\n", rvalue);
-                continue;
-            }
-            if (rvalue > 1800) {
-                /* WATCHDOG_USEC must still fit in a uint */
-                warn("Clamping update interval to 1800 from %d\n", rvalue);
-                rvalue = 1800;
-            }
-
-            /* Signed at first to avoid %u shenanigans with negatives */
-            c->update_interval = (unsigned int)rvalue;
+            config_update_interval(c, line);
         } else {
             warn("Invalid config line, ignoring: %s", line);
             continue;
