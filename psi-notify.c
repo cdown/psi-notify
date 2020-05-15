@@ -383,29 +383,25 @@ static void config_init(Config *c) {
  * make sure fgets() reads past total= and seeks up to \n.
  */
 #define PRESSURE_LINE_LEN 64
+#define PRESSURE_LINE_LEN_STR "%63s"
 
 #define COMPARE_THRESH(threshold, current)                                     \
     (threshold >= 0 && current > threshold)
 
 static int pressure_check_single_line(FILE *f, const Resource *r) {
-    const char *start;
-    char line[PRESSURE_LINE_LEN];
     char type[PRESSURE_LINE_LEN];
     double ten, sixty, three_hundred;
 
-    start = fgets(line, sizeof(line), f);
-    if (!start) {
-        warn("Premature EOF from %s\n", r->filename);
+    if (fscanf(f,
+               PRESSURE_LINE_LEN_STR
+               " avg10=%lf avg60=%lf avg300=%lf total=%*s",
+               type, &ten, &sixty, &three_hundred) != 4) {
+        warn("Can't parse pressures from %s\n", r->filename);
         return -EINVAL;
     }
 
-    info("Current %s pressures: %s", r->human_name, line);
-
-    if (sscanf(line, "%s avg10=%lf avg60=%lf avg300=%lf total=%*s", type, &ten,
-               &sixty, &three_hundred) != 4) {
-        warn("Can't parse from %s: %s\n", r->filename, line);
-        return -EINVAL;
-    }
+    info("Current %s pressures: %s avg10=%.2f avg60=%.2f avg300=%.2f\n",
+         r->human_name, type, ten, sixty, three_hundred);
 
     if (strcmp("some", type) == 0) {
         return COMPARE_THRESH(r->thresholds.ten.some, ten) ||
