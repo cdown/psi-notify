@@ -66,7 +66,7 @@ static NotifyNotification *alert_user(const char *resource) {
 
     expect(notify_is_initted());
 
-    expect(snprintf(title, TITLE_MAX, "High %s pressure!", resource) > 0);
+    snprintf_check(title, TITLE_MAX, "High %s pressure!", resource);
     n = notify_notification_new(
         title, "Consider reducing demand on this resource.", NULL);
     notify_notification_set_urgency(n, NOTIFY_URGENCY_CRITICAL);
@@ -101,15 +101,14 @@ static char *get_psi_filename(char *resource) {
     path = malloc(PRESSURE_PATH_MAX);
     expect(path);
 
-    expect(snprintf(path, PRESSURE_PATH_MAX,
-                    "/sys/fs/cgroup/user.slice/user-%d.slice/%s.pressure",
-                    getuid(), resource) > 0);
+    snprintf_check(path, PRESSURE_PATH_MAX,
+                   "/sys/fs/cgroup/user.slice/user-%d.slice/%s.pressure",
+                   getuid(), resource);
     if (access(path, R_OK) == 0) {
         return path;
     }
 
-    expect(snprintf(path, PRESSURE_PATH_MAX, "/proc/pressure/%s", resource) >
-           0);
+    snprintf_check(path, PRESSURE_PATH_MAX, "/proc/pressure/%s", resource);
     if (access(path, R_OK) == 0) {
         return path;
     }
@@ -229,7 +228,7 @@ static void config_get_path(char *out) {
     const struct passwd *pw = getpwuid(getuid());
 
     if (base_dir) {
-        expect(snprintf(out, PATH_MAX, "%s/psi-notify", base_dir) > 0);
+        snprintf_check(out, PATH_MAX, "%s/psi-notify", base_dir);
     } else {
         base_dir = getenv("HOME");
         if (!base_dir) {
@@ -242,7 +241,7 @@ static void config_get_path(char *out) {
             }
         }
 
-        expect(snprintf(out, PATH_MAX, "%s/.config/psi-notify", base_dir) > 0);
+        snprintf_check(out, PATH_MAX, "%s/.config/psi-notify", base_dir);
     }
 }
 

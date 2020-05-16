@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 typedef enum ResourceType { RT_CPU, RT_MEMORY, RT_IO } ResourceType;
 
 typedef struct {
@@ -36,3 +38,6 @@ typedef struct {
             abort();                                                           \
         }                                                                      \
     } while (0)
+
+#define snprintf_check(buf, len, fmt, ...)                                     \
+    expect((size_t)snprintf(buf, len, fmt, __VA_ARGS__) < (len))
