@@ -23,6 +23,8 @@
 static volatile sig_atomic_t config_reload_pending = 0; /* SIGHUP */
 static volatile sig_atomic_t run = 1;                   /* SIGTERM, SIGINT */
 
+static char output_buf[512];
+
 static NotifyNotification *active_notif[] = {
     [RT_CPU] = NULL,
     [RT_MEMORY] = NULL,
@@ -538,7 +540,7 @@ int main(int argc, char *argv[]) {
     }
 
     config_init(&config);
-    expect(setvbuf(stdout, NULL, _IONBF, 0) == 0);
+    expect(setvbuf(stdout, output_buf, _IOLBF, sizeof(output_buf)) == 0);
     configure_signal_handlers();
     expect(notify_init("psi-notify"));
 
