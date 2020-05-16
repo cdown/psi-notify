@@ -41,3 +41,10 @@ typedef struct {
 
 #define snprintf_check(buf, len, fmt, ...)                                     \
     expect((size_t)snprintf(buf, len, fmt, __VA_ARGS__) < (len))
+
+static inline int blank_line_or_comment(const char *s) {
+    while (isspace((unsigned char)*s)) {
+        ++s;
+    }
+    return *s == '\0' || *s == '#';
+}

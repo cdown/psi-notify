@@ -200,12 +200,6 @@ static void config_update_interval(Config *c, const char *line) {
     c->update_interval = (unsigned int)rvalue;
 }
 
-static int blank_line_or_comment(const char *s) {
-    while (isspace((unsigned char)*s))
-        s++;
-    return *s == '\0' || *s == '#';
-}
-
 static void config_reset_user_facing(Config *c) {
     c->update_interval = 5;
 
