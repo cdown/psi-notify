@@ -27,7 +27,7 @@ typedef struct {
 } Config;
 
 #define info(format, ...) printf("INFO: " format, __VA_ARGS__)
-#define warn(format, ...) printf("WARN: " format, __VA_ARGS__)
+#define warn(format, ...) fprintf(stderr, "WARN: " format, __VA_ARGS__)
 #define expect(x)                                                              \
     do {                                                                       \
         if (!(x)) {                                                            \
