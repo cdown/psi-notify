@@ -14,12 +14,10 @@
 #ifdef WANT_SD_NOTIFY
     #include <systemd/sd-daemon.h>
 #else /* !WANT_SD_NOTIFY */
-    #define sd_notify(reset_env, state)                                        \
-        do {                                                                   \
-        } while (0)
     #define sd_notifyf(reset_env, fmt, ...)                                    \
         do {                                                                   \
         } while (0)
+    #define sd_notify(reset_env, state) sd_notifyf(reset_env, "%s", state)
 #endif /* WANT_SD_NOTIFY */
 
 static volatile sig_atomic_t config_reload_pending = 0; /* SIGHUP */
