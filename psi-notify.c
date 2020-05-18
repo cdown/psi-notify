@@ -157,11 +157,11 @@ static void config_update_threshold(const char *line) {
     }
 
     if (streq(interval, "avg10")) {
-        t = &r->thresholds.ten;
+        t = &r->thresholds.avg10;
     } else if (streq(interval, "avg60")) {
-        t = &r->thresholds.sixty;
+        t = &r->thresholds.avg60;
     } else if (streq(interval, "avg300")) {
-        t = &r->thresholds.three_hundred;
+        t = &r->thresholds.avg300;
     } else {
         warn("Invalid interval in config, ignoring: '%s'\n", interval);
         return;
@@ -289,9 +289,9 @@ static int config_update_from_file(void) {
 
         config_reset_user_facing();
 
-        cfg.cpu.thresholds.ten.some = 50.00;
-        cfg.memory.thresholds.ten.some = 10.00;
-        cfg.io.thresholds.ten.some = 10.00;
+        cfg.cpu.thresholds.avg10.some = 50.00;
+        cfg.memory.thresholds.avg10.some = 10.00;
+        cfg.io.thresholds.avg10.some = 10.00;
 
         ret = -errno;
         goto out_update_watchdog;
@@ -371,29 +371,29 @@ static void config_init() {
 
 static int pressure_check_single_line(FILE *f, const Resource *r) {
     char type[PRESSURE_LINE_LEN];
-    double ten, sixty, three_hundred;
+    double avg10, avg60, avg300;
 
     if (fscanf(f,
                PRESSURE_LINE_LEN_STR
                " avg10=%lf avg60=%lf avg300=%lf total=%*s",
-               type, &ten, &sixty, &three_hundred) != 4) {
+               type, &avg10, &avg60, &avg300) != 4) {
         warn("Can't parse pressures from %s\n", r->filename);
         return -EINVAL;
     }
 
     if (cfg.log_pressures) {
         info("Current %s pressures: %s avg10=%.2f avg60=%.2f avg300=%.2f\n",
-             r->human_name, type, ten, sixty, three_hundred);
+             r->human_name, type, avg10, avg60, avg300);
     }
 
     if (streq(type, "some")) {
-        return COMPARE_THRESH(r->thresholds.ten.some, ten) ||
-               COMPARE_THRESH(r->thresholds.sixty.some, sixty) ||
-               COMPARE_THRESH(r->thresholds.three_hundred.some, three_hundred);
+        return COMPARE_THRESH(r->thresholds.avg10.some, avg10) ||
+               COMPARE_THRESH(r->thresholds.avg60.some, avg60) ||
+               COMPARE_THRESH(r->thresholds.avg300.some, avg300);
     } else if (streq(type, "full")) {
-        return COMPARE_THRESH(r->thresholds.ten.full, ten) ||
-               COMPARE_THRESH(r->thresholds.sixty.full, sixty) ||
-               COMPARE_THRESH(r->thresholds.three_hundred.full, three_hundred);
+        return COMPARE_THRESH(r->thresholds.avg10.full, avg10) ||
+               COMPARE_THRESH(r->thresholds.avg60.full, avg60) ||
+               COMPARE_THRESH(r->thresholds.avg300.full, avg300);
     }
 
     warn("Invalid type: %s\n", type);
@@ -567,12 +567,12 @@ static void print_config(void) {
     printf("      Thresholds:\n");
     for_each_arr (i, all_res) {
         Resource *r = all_res[i];
-        print_single_thresh(r, ten, some);
-        print_single_thresh(r, ten, full);
-        print_single_thresh(r, sixty, some);
-        print_single_thresh(r, sixty, full);
-        print_single_thresh(r, three_hundred, some);
-        print_single_thresh(r, three_hundred, full);
+        print_single_thresh(r, avg10, some);
+        print_single_thresh(r, avg10, full);
+        print_single_thresh(r, avg60, some);
+        print_single_thresh(r, avg60, full);
+        print_single_thresh(r, avg300, some);
+        print_single_thresh(r, avg300, full);
     }
 
     printf("\n");

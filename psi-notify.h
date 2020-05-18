@@ -10,9 +10,9 @@ typedef struct {
 } TimeResourcePressure;
 
 typedef struct {
-    TimeResourcePressure ten;
-    TimeResourcePressure sixty;
-    TimeResourcePressure three_hundred;
+    TimeResourcePressure avg10;
+    TimeResourcePressure avg60;
+    TimeResourcePressure avg300;
 } Pressure;
 
 typedef struct {
