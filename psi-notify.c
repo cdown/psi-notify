@@ -604,15 +604,15 @@ int main(int argc, char *argv[]) {
      * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
      */
     while (run) {
+        size_t i;
         struct timespec in;
 
         expect(clock_gettime(CLOCK_MONOTONIC, &in) == 0);
 
         sd_notify(0, "READY=1\nWATCHDOG=1\n"
                      "STATUS=Checking current pressures...");
-        pressure_check_notify_if_new(&cfg.cpu);
-        pressure_check_notify_if_new(&cfg.memory);
-        pressure_check_notify_if_new(&cfg.io);
+
+        for_each_arr (i, all_res) { pressure_check_notify_if_new(all_res[i]); }
 
         if (config_reload_pending) {
             sd_notify(0, "RELOADING=1\nSTATUS=Reloading config...");
