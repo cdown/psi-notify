@@ -385,11 +385,11 @@ static int pressure_check_single_line(FILE *f, const Resource *r) {
              r->human_name, type, ten, sixty, three_hundred);
     }
 
-    if (streq("some", type)) {
+    if (streq(type, "some")) {
         return COMPARE_THRESH(r->thresholds.ten.some, ten) ||
                COMPARE_THRESH(r->thresholds.sixty.some, sixty) ||
                COMPARE_THRESH(r->thresholds.three_hundred.some, three_hundred);
-    } else if (streq("full", type)) {
+    } else if (streq(type, "full")) {
         return COMPARE_THRESH(r->thresholds.ten.full, ten) ||
                COMPARE_THRESH(r->thresholds.sixty.full, sixty) ||
                COMPARE_THRESH(r->thresholds.three_hundred.full, three_hundred);
