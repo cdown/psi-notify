@@ -380,8 +380,10 @@ static int pressure_check_single_line(FILE *f, const Resource *r) {
         return -EINVAL;
     }
 
-    info("Current %s pressures: %s avg10=%.2f avg60=%.2f avg300=%.2f\n",
-         r->human_name, type, ten, sixty, three_hundred);
+    if (cfg.log_pressures) {
+        info("Current %s pressures: %s avg10=%.2f avg60=%.2f avg300=%.2f\n",
+             r->human_name, type, ten, sixty, three_hundred);
+    }
 
     if (strcmp("some", type) == 0) {
         return COMPARE_THRESH(r->thresholds.ten.some, ten) ||
