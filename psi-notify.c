@@ -23,6 +23,7 @@
 static volatile sig_atomic_t config_reload_pending = 0; /* SIGHUP */
 static volatile sig_atomic_t run = 1;                   /* SIGTERM, SIGINT */
 
+static Config cfg;
 static char output_buf[512];
 
 static NotifyNotification *active_notif[] = {
@@ -123,7 +124,7 @@ static char *get_psi_filename(char *resource) {
 
 #define CONFIG_LINE_MAX 256
 
-static void config_update_threshold(Config *c, const char *line) {
+static void config_update_threshold(const char *line) {
     char resource[CONFIG_LINE_MAX], type[CONFIG_LINE_MAX],
         interval[CONFIG_LINE_MAX];
     double threshold;
@@ -144,11 +145,11 @@ static void config_update_threshold(Config *c, const char *line) {
     }
 
     if (strcmp(resource, "cpu") == 0) {
-        r = &c->cpu;
+        r = &cfg.cpu;
     } else if (strcmp(resource, "memory") == 0) {
-        r = &c->memory;
+        r = &cfg.memory;
     } else if (strcmp(resource, "io") == 0) {
-        r = &c->io;
+        r = &cfg.io;
     } else {
         warn("Invalid resource in config, ignoring: '%s'\n", resource);
         return;
@@ -179,7 +180,7 @@ static void config_update_threshold(Config *c, const char *line) {
     }
 }
 
-static void config_update_interval(Config *c, const char *line) {
+static void config_update_interval(const char *line) {
     int rvalue;
 
     if (sscanf(line, "%*s %d", &rvalue) != 1) {
@@ -199,10 +200,10 @@ static void config_update_interval(Config *c, const char *line) {
     }
 
     /* Signed at first to avoid %u shenanigans with negatives */
-    c->update_interval = (unsigned int)rvalue;
+    cfg.update_interval = (unsigned int)rvalue;
 }
 
-static void config_update_log_pressures(Config *c, const char *line) {
+static void config_update_log_pressures(const char *line) {
     char rvalue[CONFIG_LINE_MAX];
     int ret;
 
@@ -217,25 +218,24 @@ static void config_update_log_pressures(Config *c, const char *line) {
         return;
     }
 
-    c->log_pressures = ret;
+    cfg.log_pressures = (unsigned int)ret;
 }
 
-static void config_reset_user_facing(Config *c) {
-    c->update_interval = 5;
-    c->log_pressures = 0;
+static void config_reset_user_facing(void) {
+    cfg.update_interval = 5;
+    cfg.log_pressures = 0;
 
     /* -nan */
-    memset(&c->cpu.thresholds, 0xff, sizeof(c->cpu.thresholds));
-    memset(&c->memory.thresholds, 0xff, sizeof(c->memory.thresholds));
-    memset(&c->io.thresholds, 0xff, sizeof(c->io.thresholds));
+    memset(&cfg.cpu.thresholds, 0xff, sizeof(cfg.cpu.thresholds));
+    memset(&cfg.memory.thresholds, 0xff, sizeof(cfg.memory.thresholds));
+    memset(&cfg.io.thresholds, 0xff, sizeof(cfg.io.thresholds));
 }
 
 #define WATCHDOG_GRACE_PERIOD_SEC 5
 #define SEC_TO_USEC 1000000
-static void watchdog_update_usec(const Config *c) {
-    (void)c;
+static void watchdog_update_usec(void) {
     sd_notifyf(0, "WATCHDOG_USEC=%d",
-               (c->update_interval + WATCHDOG_GRACE_PERIOD_SEC) * SEC_TO_USEC);
+               (cfg.update_interval + WATCHDOG_GRACE_PERIOD_SEC) * SEC_TO_USEC);
 }
 
 static void config_get_path(char *out) {
@@ -260,7 +260,7 @@ static void config_get_path(char *out) {
     }
 }
 
-static int config_update_from_file(Config *c) {
+static int config_update_from_file(void) {
     char line[CONFIG_LINE_MAX];
     char config_path[PATH_MAX];
     FILE *f;
@@ -270,7 +270,7 @@ static int config_update_from_file(Config *c) {
     f = fopen(config_path, "re");
 
     if (f) {
-        config_reset_user_facing(c);
+        config_reset_user_facing();
     } else {
         if (config_reload_pending) {
             /* This was from a SIGHUP, so we already have a config. Keep it. */
@@ -286,11 +286,11 @@ static int config_update_from_file(Config *c) {
                  strerror(errno));
         }
 
-        config_reset_user_facing(c);
+        config_reset_user_facing();
 
-        c->cpu.thresholds.ten.some = 50.00;
-        c->memory.thresholds.ten.some = 10.00;
-        c->io.thresholds.ten.some = 10.00;
+        cfg.cpu.thresholds.ten.some = 50.00;
+        cfg.memory.thresholds.ten.some = 10.00;
+        cfg.io.thresholds.ten.some = 10.00;
 
         ret = -errno;
         goto out_update_watchdog;
@@ -318,11 +318,11 @@ static int config_update_from_file(Config *c) {
         }
 
         if (strcmp(lvalue, "threshold") == 0) {
-            config_update_threshold(c, line);
+            config_update_threshold(line);
         } else if (strcmp(lvalue, "update") == 0) {
-            config_update_interval(c, line);
+            config_update_interval(line);
         } else if (strcmp(lvalue, "log_pressures") == 0) {
-            config_update_log_pressures(c, line);
+            config_update_log_pressures(line);
         } else {
             warn("Invalid config line, ignoring: %s", line);
             continue;
@@ -332,30 +332,30 @@ static int config_update_from_file(Config *c) {
     fclose(f);
 
 out_update_watchdog:
-    watchdog_update_usec(c);
+    watchdog_update_usec();
 
     return ret;
 }
 
-static void config_init(Config *c) {
-    memset(c, 0, sizeof(Config));
+static void config_init() {
+    memset(&cfg, 0, sizeof(Config));
 
-    c->cpu.filename = get_psi_filename("cpu");
-    c->cpu.type = RT_CPU;
-    c->cpu.human_name = "CPU";
-    c->cpu.has_full = 0;
+    cfg.cpu.filename = get_psi_filename("cpu");
+    cfg.cpu.type = RT_CPU;
+    cfg.cpu.human_name = "CPU";
+    cfg.cpu.has_full = 0;
 
-    c->memory.filename = get_psi_filename("memory");
-    c->memory.type = RT_MEMORY;
-    c->memory.human_name = "memory";
-    c->memory.has_full = 1;
+    cfg.memory.filename = get_psi_filename("memory");
+    cfg.memory.type = RT_MEMORY;
+    cfg.memory.human_name = "memory";
+    cfg.memory.has_full = 1;
 
-    c->io.filename = get_psi_filename("io");
-    c->io.type = RT_IO;
-    c->io.human_name = "I/O";
-    c->io.has_full = 1;
+    cfg.io.filename = get_psi_filename("io");
+    cfg.io.type = RT_IO;
+    cfg.io.human_name = "I/O";
+    cfg.io.has_full = 1;
 
-    (void)config_update_from_file(c);
+    (void)config_update_from_file();
 }
 
 /*
@@ -485,11 +485,10 @@ static void pressure_check_notify_if_new(const Resource *r) {
 
 #define SEC_TO_NSEC 1000000000
 
-static void suspend_for_remaining_interval(const Config *c,
-                                           const struct timespec *in) {
+static void suspend_for_remaining_interval(const struct timespec *in) {
     struct timespec out, remaining;
 
-    if (c->update_interval == 0) {
+    if (cfg.update_interval == 0) {
         return;
     }
 
@@ -503,7 +502,7 @@ static void suspend_for_remaining_interval(const Config *c,
         remaining.tv_nsec = out.tv_nsec - in->tv_nsec;
     }
 
-    remaining.tv_sec = (c->update_interval - remaining.tv_sec - 1);
+    remaining.tv_sec = (cfg.update_interval - remaining.tv_sec - 1);
     remaining.tv_nsec = (SEC_TO_NSEC - remaining.tv_nsec);
 
     if (remaining.tv_nsec == SEC_TO_NSEC) {
@@ -511,9 +510,9 @@ static void suspend_for_remaining_interval(const Config *c,
         remaining.tv_nsec = 0;
     }
 
-    if (remaining.tv_sec >= c->update_interval) {
+    if (remaining.tv_sec >= cfg.update_interval) {
         warn("Timer elapsed %d seconds before we completed one event loop\n",
-             c->update_interval);
+             cfg.update_interval);
         return;
     }
 
@@ -522,7 +521,6 @@ static void suspend_for_remaining_interval(const Config *c,
 
 /* If running under AFL, just run the code and exit. Returns 1 if fuzzing. */
 static int check_fuzzers(void) {
-    Config config;
     char *fuzz_pressure_file = getenv("FUZZ_PRESSURES");
 
     if (fuzz_pressure_file) {
@@ -535,10 +533,10 @@ static int check_fuzzers(void) {
     }
 
     if (getenv("FUZZ_CONFIGS")) {
-        config_init(&config);
-        free(config.cpu.filename);
-        free(config.memory.filename);
-        free(config.io.filename);
+        config_init();
+        free(cfg.cpu.filename);
+        free(cfg.memory.filename);
+        free(cfg.io.filename);
         return 1;
     }
 
@@ -546,8 +544,6 @@ static int check_fuzzers(void) {
 }
 
 int main(int argc, char *argv[]) {
-    Config config;
-
     (void)argv;
 
     if (argc != 1) {
@@ -560,7 +556,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    config_init(&config);
+    config_init();
     expect(setvbuf(stdout, output_buf, _IOLBF, sizeof(output_buf)) == 0);
     configure_signal_handlers();
     expect(notify_init("psi-notify"));
@@ -578,27 +574,27 @@ int main(int argc, char *argv[]) {
 
         sd_notify(0, "READY=1\nWATCHDOG=1\n"
                      "STATUS=Checking current pressures...");
-        pressure_check_notify_if_new(&config.cpu);
-        pressure_check_notify_if_new(&config.memory);
-        pressure_check_notify_if_new(&config.io);
+        pressure_check_notify_if_new(&cfg.cpu);
+        pressure_check_notify_if_new(&cfg.memory);
+        pressure_check_notify_if_new(&cfg.io);
 
         if (config_reload_pending) {
             sd_notify(0, "RELOADING=1\nSTATUS=Reloading config...");
-            if (config_update_from_file(&config) == 0) {
+            if (config_update_from_file() == 0) {
                 printf("Config reloaded.\n");
             }
             config_reload_pending = 0;
         } else if (run) {
             sd_notify(0, "STATUS=Waiting for next interval.");
-            suspend_for_remaining_interval(&config, &in);
+            suspend_for_remaining_interval(&in);
         }
     }
 
     sd_notify(0, "STOPPING=1\nSTATUS=Tearing down...");
 
-    free(config.cpu.filename);
-    free(config.memory.filename);
-    free(config.io.filename);
+    free(cfg.cpu.filename);
+    free(cfg.memory.filename);
+    free(cfg.io.filename);
     alert_destroy_all_active();
     notify_uninit();
 }
