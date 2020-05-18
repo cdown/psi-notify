@@ -48,6 +48,9 @@ typedef struct {
 #define for_each_arr(i, items)                                                 \
     for (i = 0; i < sizeof(items) / sizeof(items[0]); i++)
 
+#define streq(a, b) (strcmp((a), (b)) == 0)
+#define strceq(a, b) (strcasecmp((a), (b)) == 0)
+
 static inline int blank_line_or_comment(const char *s) {
     while (isspace((unsigned char)*s)) {
         ++s;
@@ -61,13 +64,13 @@ static inline int parse_boolean(const char *s) {
     const char *const falsy[] = {"0", "no", "false", "off"};
 
     for_each_arr (i, truthy) {
-        if (strcasecmp(s, truthy[i]) == 0) {
+        if (strceq(s, truthy[i])) {
             return 1;
         }
     }
 
     for_each_arr (i, falsy) {
-        if (strcasecmp(s, falsy[i]) == 0) {
+        if (strceq(s, falsy[i])) {
             return 0;
         }
     }

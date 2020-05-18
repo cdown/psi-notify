@@ -144,32 +144,32 @@ static void config_update_threshold(const char *line) {
         return;
     }
 
-    if (strcmp(resource, "cpu") == 0) {
+    if (streq(resource, "cpu")) {
         r = &cfg.cpu;
-    } else if (strcmp(resource, "memory") == 0) {
+    } else if (streq(resource, "memory")) {
         r = &cfg.memory;
-    } else if (strcmp(resource, "io") == 0) {
+    } else if (streq(resource, "io")) {
         r = &cfg.io;
     } else {
         warn("Invalid resource in config, ignoring: '%s'\n", resource);
         return;
     }
 
-    if (strcmp(interval, "avg10") == 0) {
+    if (streq(interval, "avg10")) {
         t = &r->thresholds.ten;
-    } else if (strcmp(interval, "avg60") == 0) {
+    } else if (streq(interval, "avg60")) {
         t = &r->thresholds.sixty;
-    } else if (strcmp(interval, "avg300") == 0) {
+    } else if (streq(interval, "avg300")) {
         t = &r->thresholds.three_hundred;
     } else {
         warn("Invalid interval in config, ignoring: '%s'\n", interval);
         return;
     }
 
-    if (strcmp(type, "some") == 0) {
+    if (streq(type, "some")) {
         t->some = threshold;
-    } else if (strcmp(type, "full") == 0) {
-        if (strcmp(resource, "cpu") == 0) {
+    } else if (streq(type, "full")) {
+        if (streq(resource, "cpu")) {
             warn("Full interval for %s is bogus, ignoring\n", resource);
             return;
         }
@@ -317,11 +317,11 @@ static int config_update_from_file(void) {
             continue;
         }
 
-        if (strcmp(lvalue, "threshold") == 0) {
+        if (streq(lvalue, "threshold")) {
             config_update_threshold(line);
-        } else if (strcmp(lvalue, "update") == 0) {
+        } else if (streq(lvalue, "update")) {
             config_update_interval(line);
-        } else if (strcmp(lvalue, "log_pressures") == 0) {
+        } else if (streq(lvalue, "log_pressures")) {
             config_update_log_pressures(line);
         } else {
             warn("Invalid config line, ignoring: %s", line);
@@ -385,11 +385,11 @@ static int pressure_check_single_line(FILE *f, const Resource *r) {
              r->human_name, type, ten, sixty, three_hundred);
     }
 
-    if (strcmp("some", type) == 0) {
+    if (streq("some", type)) {
         return COMPARE_THRESH(r->thresholds.ten.some, ten) ||
                COMPARE_THRESH(r->thresholds.sixty.some, sixty) ||
                COMPARE_THRESH(r->thresholds.three_hundred.some, three_hundred);
-    } else if (strcmp("full", type) == 0) {
+    } else if (streq("full", type)) {
         return COMPARE_THRESH(r->thresholds.ten.full, ten) ||
                COMPARE_THRESH(r->thresholds.sixty.full, sixty) ||
                COMPARE_THRESH(r->thresholds.three_hundred.full, three_hundred);
