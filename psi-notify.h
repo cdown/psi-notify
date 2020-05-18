@@ -16,6 +16,7 @@ typedef struct {
 } Pressure;
 
 typedef struct {
+    int dir_fd;
     char *filename;
     char *human_name;
     unsigned int has_full;

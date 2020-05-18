@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <libnotify/notify.h>
 #include <linux/limits.h>
 #include <pwd.h>
@@ -97,32 +98,39 @@ static void alert_destroy_all_active(void) {
     }
 }
 
-#define PRESSURE_PATH_MAX                                                      \
-    sizeof("/sys/fs/cgroup/user.slice/user-2147483647.slice/memory.pressure")
+#define PRESSURE_FILE_PATH_MAX sizeof("memory.pressure")
 
-static char *get_psi_filename(char *resource) {
+static void get_psi_dir_and_filename(Resource *r, char *resource) {
+    int dir_fd;
+    char dir_path[PATH_MAX];
     char *path;
 
-    path = malloc(PRESSURE_PATH_MAX);
+    path = malloc(PRESSURE_FILE_PATH_MAX);
     expect(path);
 
-    snprintf_check(path, PRESSURE_PATH_MAX,
-                   "/sys/fs/cgroup/user.slice/user-%d.slice/%s.pressure",
-                   getuid(), resource);
-    if (access(path, R_OK) == 0) {
+    snprintf_check(dir_path, PATH_MAX,
+                   "/sys/fs/cgroup/user.slice/user-%d.slice", getuid());
+
+    dir_fd = open(dir_path, O_RDONLY);
+    if (dir_fd) {
         using_seat = true;
-        return path;
+        r->dir_fd = dir_fd;
+        snprintf_check(path, PRESSURE_FILE_PATH_MAX, "%s.pressure", resource);
+        r->filename = path;
+        return;
     }
 
-    snprintf_check(path, PRESSURE_PATH_MAX, "/proc/pressure/%s", resource);
-    if (access(path, R_OK) == 0) {
-        return path;
+    dir_fd = open("/proc/pressure", O_RDONLY);
+    if (dir_fd) {
+        r->dir_fd = dir_fd;
+        snprintf_check(path, PRESSURE_FILE_PATH_MAX, "%s", resource);
+        r->filename = path;
+        return;
     }
 
     warn("Couldn't find any pressure file for resource %s, skipping\n",
          resource);
     free(path);
-    return NULL;
 }
 
 #define CONFIG_LINE_MAX 256
@@ -343,17 +351,17 @@ out_update_watchdog:
 static void config_init() {
     memset(&cfg, 0, sizeof(Config));
 
-    cfg.cpu.filename = get_psi_filename("cpu");
+    get_psi_dir_and_filename(&cfg.cpu, "cpu");
     cfg.cpu.type = RT_CPU;
     cfg.cpu.human_name = "CPU";
     cfg.cpu.has_full = 0;
 
-    cfg.memory.filename = get_psi_filename("memory");
+    get_psi_dir_and_filename(&cfg.memory, "memory");
     cfg.memory.type = RT_MEMORY;
     cfg.memory.human_name = "memory";
     cfg.memory.has_full = 1;
 
-    cfg.io.filename = get_psi_filename("io");
+    get_psi_dir_and_filename(&cfg.io, "io");
     cfg.io.type = RT_IO;
     cfg.io.human_name = "I/O";
     cfg.io.has_full = 1;
@@ -405,18 +413,20 @@ static int pressure_check_single_line(FILE *f, const Resource *r) {
 /* >0: above thresholds, 0: within thresholds, <0: error */
 static int pressure_check(const Resource *r) {
     FILE *f;
+    int fd;
     int ret = 0;
 
     if (!r->filename) {
         return 0;
     }
 
-    f = fopen(r->filename, "re");
-
-    if (!f) {
+    fd = openat(r->dir_fd, r->filename, O_RDONLY | O_CLOEXEC);
+    if (fd < 0) {
         perror(r->filename);
         return -EINVAL;
     }
+
+    f = fdopen(fd, "r"); /* O_CLOEXEC is passed through */
 
     ret = pressure_check_single_line(f, r);
     if (ret) {
