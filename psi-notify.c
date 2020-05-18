@@ -26,6 +26,7 @@ static volatile sig_atomic_t run = 1;                   /* SIGTERM, SIGINT */
 static Config cfg;
 static char output_buf[512];
 static Resource *all_res[] = {&cfg.cpu, &cfg.memory, &cfg.io};
+static bool using_seat = false;
 
 static NotifyNotification *active_notif[] = {
     [RT_CPU] = NULL,
@@ -109,6 +110,7 @@ static char *get_psi_filename(char *resource) {
                    "/sys/fs/cgroup/user.slice/user-%d.slice/%s.pressure",
                    getuid(), resource);
     if (access(path, R_OK) == 0) {
+        using_seat = true;
         return path;
     }
 
@@ -596,6 +598,14 @@ int main(int argc, char *argv[]) {
     expect(setvbuf(stdout, output_buf, _IOLBF, sizeof(output_buf)) == 0);
     configure_signal_handlers();
     expect(notify_init("psi-notify"));
+
+    if (using_seat) {
+        info("%s\n",
+             "Using pressures from current user's systemd-logind seat.");
+    } else {
+        info("%s\n", "Using system-global resource pressures.");
+    }
+
     print_config();
 
     /*
