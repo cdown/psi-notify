@@ -547,9 +547,10 @@ static int check_fuzzers(void) {
 }
 
 #define print_single_thresh(res, time, type)                                   \
+    expect(*res->human_name);                                                  \
     if (res->thresholds.time.type >= 0)                                        \
-    printf("        - %s %s %s: %.2f\n", res->human_name, #time, #type,        \
-           res->thresholds.time.type)
+    printf("        - %c%s %s %s: %.2f\n", toupper(res->human_name[0]),        \
+           res->human_name + 1, #time, #type, res->thresholds.time.type)
 
 static void print_config(void) {
     size_t i;
