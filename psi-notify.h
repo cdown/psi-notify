@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <strings.h>
 
 typedef enum ResourceType { RT_CPU, RT_MEMORY, RT_IO } ResourceType;
 
@@ -26,6 +27,7 @@ typedef struct {
     Resource memory;
     Resource io;
     unsigned int update_interval;
+    unsigned int log_pressures;
 } Config;
 
 #define info(format, ...) printf("INFO: " format, __VA_ARGS__)
@@ -42,9 +44,32 @@ typedef struct {
 #define snprintf_check(buf, len, fmt, ...)                                     \
     expect((size_t)snprintf(buf, len, fmt, __VA_ARGS__) < (len))
 
+#define for_each_arr(i, items)                                                 \
+    for (i = 0; i < sizeof(items) / sizeof(items[0]); i++)
+
 static inline int blank_line_or_comment(const char *s) {
     while (isspace((unsigned char)*s)) {
         ++s;
     }
     return *s == '\0' || *s == '#';
+}
+
+static inline int parse_boolean(const char *s) {
+    size_t i;
+    const char *const truthy[] = {"1", "yes", "true", "on"};
+    const char *const falsy[] = {"0", "no", "false", "off"};
+
+    for_each_arr (i, truthy) {
+        if (strcasecmp(s, truthy[i]) == 0) {
+            return 1;
+        }
+    }
+
+    for_each_arr (i, falsy) {
+        if (strcasecmp(s, falsy[i]) == 0) {
+            return 0;
+        }
+    }
+
+    return -EINVAL;
 }

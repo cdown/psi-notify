@@ -202,8 +202,27 @@ static void config_update_interval(Config *c, const char *line) {
     c->update_interval = (unsigned int)rvalue;
 }
 
+static void config_update_log_pressures(Config *c, const char *line) {
+    char rvalue[CONFIG_LINE_MAX];
+    int ret;
+
+    if (sscanf(line, "%*s %s", rvalue) != 1) {
+        warn("Invalid config line, ignoring: %s", line);
+        return;
+    }
+
+    ret = parse_boolean(rvalue);
+    if (ret < 0) {
+        warn("Invalid bool for log_pressures, ignoring: %s\n", rvalue);
+        return;
+    }
+
+    c->log_pressures = ret;
+}
+
 static void config_reset_user_facing(Config *c) {
     c->update_interval = 5;
+    c->log_pressures = 0;
 
     /* -nan */
     memset(&c->cpu.thresholds, 0xff, sizeof(c->cpu.thresholds));
@@ -302,6 +321,8 @@ static int config_update_from_file(Config *c) {
             config_update_threshold(c, line);
         } else if (strcmp(lvalue, "update") == 0) {
             config_update_interval(c, line);
+        } else if (strcmp(lvalue, "log_pressures") == 0) {
+            config_update_log_pressures(c, line);
         } else {
             warn("Invalid config line, ignoring: %s", line);
             continue;
