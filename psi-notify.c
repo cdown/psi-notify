@@ -86,7 +86,7 @@ static NotifyNotification *alert_user(const char *resource) {
 
 static void alert_destroy_all_active(void) {
     size_t i;
-    for (i = 0; i < sizeof(active_notif) / sizeof(active_notif[0]); i++) {
+    for_each_arr (i, active_notif) {
         if (active_notif[i]) {
             NotifyNotification *n = active_notif[i];
             active_notif[i] = NULL;
