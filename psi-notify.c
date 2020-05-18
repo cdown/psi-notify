@@ -569,7 +569,7 @@ static void print_config(void) {
 
     printf("      Thresholds:\n");
     for_each_arr (i, all_res) {
-        Resource *r = all_res[i];
+        const Resource *r = all_res[i];
         print_single_thresh(r, avg10, some);
         print_single_thresh(r, avg10, full);
         print_single_thresh(r, avg60, some);
