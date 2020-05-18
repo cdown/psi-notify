@@ -25,6 +25,7 @@ static volatile sig_atomic_t run = 1;                   /* SIGTERM, SIGINT */
 
 static Config cfg;
 static char output_buf[512];
+static Resource *all_res[] = {&cfg.cpu, &cfg.memory, &cfg.io};
 
 static NotifyNotification *active_notif[] = {
     [RT_CPU] = NULL,
@@ -545,6 +546,38 @@ static int check_fuzzers(void) {
     return 0;
 }
 
+#define print_single_thresh(res, time, type)                                   \
+    if (res->thresholds.time.type >= 0)                                        \
+    printf("        - %s %s %s: %.2f\n", res->human_name, #time, #type,        \
+           res->thresholds.time.type)
+
+static void print_config(void) {
+    size_t i;
+    char *header = "Config";
+
+    if (config_reload_pending) {
+        header = "Config reloaded. New config after reload";
+    }
+
+    info("%s:\n\n", header);
+
+    printf("      Log pressures: %s\n", cfg.log_pressures ? "true" : "false");
+    printf("      Update interval: %ds\n\n", cfg.update_interval);
+
+    printf("      Thresholds:\n");
+    for_each_arr (i, all_res) {
+        Resource *r = all_res[i];
+        print_single_thresh(r, ten, some);
+        print_single_thresh(r, ten, full);
+        print_single_thresh(r, sixty, some);
+        print_single_thresh(r, sixty, full);
+        print_single_thresh(r, three_hundred, some);
+        print_single_thresh(r, three_hundred, full);
+    }
+
+    printf("\n");
+}
+
 int main(int argc, char *argv[]) {
     (void)argv;
 
@@ -562,6 +595,7 @@ int main(int argc, char *argv[]) {
     expect(setvbuf(stdout, output_buf, _IOLBF, sizeof(output_buf)) == 0);
     configure_signal_handlers();
     expect(notify_init("psi-notify"));
+    print_config();
 
     /*
      * TODO: If discussion on unprivileged PSI poll() support upstream ends up
@@ -583,7 +617,7 @@ int main(int argc, char *argv[]) {
         if (config_reload_pending) {
             sd_notify(0, "RELOADING=1\nSTATUS=Reloading config...");
             if (config_update_from_file() == 0) {
-                printf("Config reloaded.\n");
+                print_config();
             }
             config_reload_pending = 0;
         } else if (run) {
