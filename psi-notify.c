@@ -218,12 +218,12 @@ static void config_update_log_pressures(const char *line) {
         return;
     }
 
-    cfg.log_pressures = (unsigned int)ret;
+    cfg.log_pressures = ret;
 }
 
 static void config_reset_user_facing(void) {
     cfg.update_interval = 5;
-    cfg.log_pressures = 0;
+    cfg.log_pressures = false;
 
     /* -nan */
     memset(&cfg.cpu.thresholds, 0xff, sizeof(cfg.cpu.thresholds));

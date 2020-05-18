@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <strings.h>
 
@@ -27,7 +28,7 @@ typedef struct {
     Resource memory;
     Resource io;
     unsigned int update_interval;
-    unsigned int log_pressures;
+    bool log_pressures;
 } Config;
 
 #define info(format, ...) printf("INFO: " format, __VA_ARGS__)
