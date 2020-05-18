@@ -50,6 +50,7 @@ exceeded:
 
 ```
 update 5
+log_pressures false
 
 threshold cpu some avg10 50.00
 threshold memory some avg10 10.00
@@ -93,8 +94,25 @@ problem by simply notifying, rather than taking action.
 
 ## Config format
 
+### update
+
 The update interval in seconds is specified with `update [int]`. The default is
 `update 5` if unspecified.
+
+### log_pressures
+
+If you'd like messages like this at every update interval, you can set
+`log_pressures true` (the default is `false`):
+
+```
+INFO: Current CPU pressures: some avg10=0.00 avg60=0.02 avg300=0.01
+INFO: Current memory pressures: some avg10=0.00 avg60=0.00 avg300=0.00
+INFO: Current memory pressures: full avg10=0.00 avg60=0.00 avg300=0.00
+INFO: Current I/O pressures: some avg10=0.00 avg60=0.00 avg300=0.00
+INFO: Current I/O pressures: full avg10=0.00 avg60=0.00 avg300=0.00
+```
+
+### threshold
 
 Thresholds are specified with fields in the following format:
 
