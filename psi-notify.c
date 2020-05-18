@@ -592,6 +592,8 @@ static void print_config(void) {
 }
 
 int main(int argc, char *argv[]) {
+    unsigned long num_iters = 0;
+
     (void)argv;
 
     if (argc != 1) {
@@ -645,8 +647,11 @@ int main(int argc, char *argv[]) {
             sd_notify(0, "STATUS=Waiting for next interval.");
             suspend_for_remaining_interval(&in);
         }
+
+        ++num_iters;
     }
 
+    info("Terminating after %lu intervals elapsed.\n", num_iters);
     sd_notify(0, "STOPPING=1\nSTATUS=Tearing down...");
 
     free(cfg.cpu.filename);
