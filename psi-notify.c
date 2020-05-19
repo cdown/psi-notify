@@ -419,6 +419,7 @@ static int pressure_check(const Resource *r) {
     FILE *f;
     int fd;
     int ret = 0;
+    char p_buf[PRESSURE_LINE_LEN * 2]; /* Avoiding slow _IO_doallocbuf */
 
     if (!r->filename) {
         return 0;
@@ -432,6 +433,7 @@ static int pressure_check(const Resource *r) {
 
     f = fdopen(fd, "r"); /* O_CLOEXEC is passed through */
     expect(f);
+    expect(setvbuf(f, p_buf, _IOFBF, sizeof(p_buf)) == 0);
 
     ret = pressure_check_single_line(f, r);
     if (ret) {
