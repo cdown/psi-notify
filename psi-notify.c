@@ -637,7 +637,7 @@ int main(int argc, char *argv[]) {
 
     if (using_seat) {
         info("%s\n",
-             "Using pressures from current user's systemd-logind seat.");
+             "Using pressures from the current user's systemd-logind seat.");
     } else {
         info("%s\n", "Using system-global resource pressures.");
     }
