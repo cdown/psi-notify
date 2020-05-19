@@ -132,7 +132,7 @@ static void get_psi_dir_and_filename(Resource *r, char *resource) {
         return;
     }
 
-    warn("Couldn't find any pressure file for resource %s, skipping\n",
+    warn("Couldn't find any pressure file for resource %s, skipping.\n",
          resource);
     free(path);
 }
@@ -185,7 +185,7 @@ static void config_update_threshold(const char *line) {
         t->some = threshold;
     } else if (streq(type, "full")) {
         if (streq(resource, "cpu")) {
-            warn("Full interval for %s is bogus, ignoring\n", resource);
+            warn("Full interval for %s is bogus, ignoring.\n", resource);
             return;
         }
         t->full = threshold;
@@ -210,7 +210,7 @@ static void config_update_interval(const char *line) {
 
     if (rvalue > 1800) {
         /* WATCHDOG_USEC must still fit in a uint */
-        warn("Clamping update interval to 1800 from %d\n", rvalue);
+        warn("Clamping update interval to 1800 from %d.\n", rvalue);
         rvalue = 1800;
     }
 
@@ -300,7 +300,7 @@ static int config_update_from_file(FILE **override_config) {
 
         if (*config_path) {
             if (errno == ENOENT) {
-                info("No config at %s, using defaults\n", config_path);
+                info("No config at %s, using defaults.\n", config_path);
             } else {
                 warn("Using default config, cannot open %s: %s\n", config_path,
                      strerror(errno));
@@ -544,7 +544,7 @@ static void suspend_for_remaining_interval(const struct timespec *in) {
     }
 
     if (remaining.tv_sec >= cfg.update_interval) {
-        warn("Timer elapsed %d seconds before we completed one event loop\n",
+        warn("Timer elapsed %d seconds before we completed one event loop.\n",
              cfg.update_interval);
         return;
     }
