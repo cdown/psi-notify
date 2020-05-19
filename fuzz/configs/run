@@ -13,8 +13,8 @@ for (( i = 0; i < $(nproc); i++ )); do
     config_dir=fuzz/configs/generated/"$num"
 
     mkdir -p -- "$config_dir"
-    XDG_CONFIG_DIR="$config_dir" \
-	afl-fuzz -i fuzz/configs/testcases -o fuzz/configs/results -f fuzz/configs/generated/"$num"/psi-notify -m none \
+    FUZZ_CONFIGS="$config_dir"/psi-notify \
+	afl-fuzz -i fuzz/configs/testcases -o fuzz/configs/results -f "$config_dir"/psi-notify -m none \
 	"$afl_type" "$prefix-$num" ./psi-notify &
 done
 
