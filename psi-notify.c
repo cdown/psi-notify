@@ -431,6 +431,7 @@ static int pressure_check(const Resource *r) {
     }
 
     f = fdopen(fd, "r"); /* O_CLOEXEC is passed through */
+    expect(f);
 
     ret = pressure_check_single_line(f, r);
     if (ret) {
