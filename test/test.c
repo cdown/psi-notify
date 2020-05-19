@@ -18,10 +18,12 @@
 #define t_assert(test)                                                         \
     do {                                                                       \
         if (!(test)) {                                                         \
-            printf("  %s[FAIL] %s%s\n", COL_RED, #test, COL_NORMAL);           \
+            printf("  %s[FAIL:%d] %s%s\n", COL_RED, __LINE__, #test,           \
+                   COL_NORMAL);                                                \
             return false;                                                      \
         }                                                                      \
-        printf("  %s[PASS] %s%s\n", COL_GREEN, #test, COL_NORMAL);             \
+        printf("  %s[PASS:%d] %s%s\n", COL_GREEN, __LINE__, #test,             \
+               COL_NORMAL);                                                    \
     } while (0)
 
 #define t_run(test)                                                            \
@@ -71,9 +73,32 @@ static bool test_config_parse_init_no_file_uses_defaults(void) {
     return true;
 }
 
+static bool test_pressure_check(void) {
+    FILE *psi_f;
+    const char *raw_psi =
+        "some avg10=5.00 avg60=10.02 avg300=100.00 total=453225698\n"
+        "full avg10=5.00 avg60=20.02 avg300=90.00 total=416296780\n";
+    FILE *config_f = fmemopen((void *)"", strlen(""), "r");
+
+    config_init(&config_f);
+
+    /* Threshold are too low. */
+    psi_f = fmemopen((void *)raw_psi, strlen(raw_psi), "r");
+    cfg.io.thresholds.avg300.full = 90.00;
+    t_assert(pressure_check(&cfg.io, psi_f) == 0);
+
+    /* Add another threshold which trips. */
+    psi_f = fmemopen((void *)raw_psi, strlen(raw_psi), "r");
+    cfg.io.thresholds.avg300.some = 9.99;
+    t_assert(pressure_check(&cfg.io, psi_f) == 1);
+
+    return true;
+}
+
 static bool run_tests(void) {
     t_run(test_config_parse_basic);
     t_run(test_config_parse_init_no_file_uses_defaults);
+    t_run(test_pressure_check);
     return true;
 }
 

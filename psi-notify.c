@@ -358,7 +358,7 @@ out_update_watchdog:
     return ret;
 }
 
-static void config_init() {
+static void config_init(FILE **override_config) {
     memset(&cfg, 0, sizeof(Config));
 
     get_psi_dir_and_filename(&cfg.cpu, "cpu");
@@ -376,7 +376,7 @@ static void config_init() {
     cfg.io.human_name = "I/O";
     cfg.io.has_full = 1;
 
-    (void)config_update_from_file(NULL);
+    (void)config_update_from_file(override_config);
 }
 
 /*
@@ -421,25 +421,30 @@ static int pressure_check_single_line(FILE *f, const Resource *r) {
 }
 
 /* >0: above thresholds, 0: within thresholds, <0: error */
-static int pressure_check(const Resource *r) {
+static int pressure_check(const Resource *r, FILE *override_file) {
     FILE *f;
     int fd;
     int ret = 0;
     char p_buf[PRESSURE_LINE_LEN * 2]; /* Avoiding slow _IO_doallocbuf */
 
-    if (!r->filename) {
+    if (!r->filename && !override_file) {
         return 0;
     }
 
-    fd = openat(r->dir_fd, r->filename, O_RDONLY | O_CLOEXEC);
-    if (fd < 0) {
-        perror(r->filename);
-        return -EINVAL;
-    }
+    if (override_file) {
+        f = override_file;
+        expect(f);
+    } else {
+        fd = openat(r->dir_fd, r->filename, O_RDONLY | O_CLOEXEC);
+        if (fd < 0) {
+            perror(r->filename);
+            return -EINVAL;
+        }
 
-    f = fdopen(fd, "r"); /* O_CLOEXEC is passed through */
-    expect(f);
-    expect(setvbuf(f, p_buf, _IOFBF, sizeof(p_buf)) == 0);
+        f = fdopen(fd, "r"); /* O_CLOEXEC is passed through */
+        expect(f);
+        expect(setvbuf(f, p_buf, _IOFBF, sizeof(p_buf)) == 0);
+    }
 
     ret = pressure_check_single_line(f, r);
     if (ret) {
@@ -495,7 +500,7 @@ static int alert_stop(const Resource *r) {
 }
 
 static void pressure_check_notify_if_new(const Resource *r) {
-    int ret = pressure_check(r);
+    int ret = pressure_check(r, NULL);
 
     switch (ret) {
         case 0:
@@ -556,12 +561,12 @@ static int check_fuzzers(void) {
         memset(&r, 0, sizeof(r));
         r.filename = fuzz_pressure_file;
         r.human_name = "FUZZ";
-        (void)pressure_check(&r);
+        (void)pressure_check(&r, NULL);
         return 1;
     }
 
     if (getenv("FUZZ_CONFIGS")) {
-        config_init();
+        config_init(NULL);
         free(cfg.cpu.filename);
         free(cfg.memory.filename);
         free(cfg.io.filename);
@@ -620,7 +625,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    config_init();
+    config_init(NULL);
     expect(setvbuf(stdout, output_buf, _IOLBF, sizeof(output_buf)) == 0);
     configure_signal_handlers();
     expect(notify_init("psi-notify"));
