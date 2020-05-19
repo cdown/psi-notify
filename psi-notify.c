@@ -643,6 +643,7 @@ int main(int argc, char *argv[]) {
     }
 
     print_config();
+    info("%s\n", "Pressure monitoring started.");
 
     /*
      * TODO: If discussion on unprivileged PSI poll() support upstream ends up
