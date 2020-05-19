@@ -554,8 +554,8 @@ static void suspend_for_remaining_interval(const struct timespec *in) {
 
 /* If running under AFL, just run the code and exit. Returns 1 if fuzzing. */
 static int check_fuzzers(void) {
-    char *fuzz_config_file = getenv("FUZZ_CONFIGS");
-    char *fuzz_pressure_file = getenv("FUZZ_PRESSURES");
+    const char *const fuzz_config_file = getenv("FUZZ_CONFIGS");
+    const char *const fuzz_pressure_file = getenv("FUZZ_PRESSURES");
 
     if (fuzz_pressure_file) {
         Resource r;
