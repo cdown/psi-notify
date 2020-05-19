@@ -116,7 +116,7 @@ static void get_psi_dir_and_filename(Resource *r, char *resource) {
                    "/sys/fs/cgroup/user.slice/user-%d.slice", getuid());
 
     dir_fd = open(dir_path, O_RDONLY);
-    if (dir_fd) {
+    if (dir_fd > 0) {
         using_seat = true;
         r->dir_fd = dir_fd;
         snprintf_check(path, PRESSURE_FILE_PATH_MAX, "%s.pressure", resource);
@@ -125,7 +125,7 @@ static void get_psi_dir_and_filename(Resource *r, char *resource) {
     }
 
     dir_fd = open("/proc/pressure", O_RDONLY);
-    if (dir_fd) {
+    if (dir_fd > 0) {
         r->dir_fd = dir_fd;
         snprintf_check(path, PRESSURE_FILE_PATH_MAX, "%s", resource);
         r->filename = path;
