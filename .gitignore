@@ -1,3 +1,4 @@
 psi-notify
+test/test
 fuzz/*/generated
 fuzz/*/results

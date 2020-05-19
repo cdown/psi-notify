@@ -22,8 +22,8 @@ jobs:
       - 'timeout -s INT --preserve-status 3m make fuzz-pressures; [[ $? == 130 ]]'
       - 'if (( "$(find fuzz/pressures/results/*/crashes -type f | wc -l)" != 0 )); then grep . fuzz/pressures/results/*/crashes/*; exit 1; fi'
 
-    - name: Build
-      script: make
+    - name: Run unit tests
+      script: make test
 
     - name: Build clang-tidy
       script: make clang-tidy
@@ -31,8 +31,8 @@ jobs:
     - name: Build clang-everything
       script: make clang-everything
 
-    - name: Build (WANT_SD_NOTIFY=0)
-      script: make WANT_SD_NOTIFY=0
+    - name: Run unit tests (WANT_SD_NOTIFY=0)
+      script: make test WANT_SD_NOTIFY=0
 
     - name: Build clang-tidy (WANT_SD_NOTIFY=0)
       script: make clang-tidy WANT_SD_NOTIFY=0

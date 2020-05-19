@@ -17,6 +17,8 @@ endif
 SOURCES=$(wildcard *.c)
 EXECUTABLES=$(patsubst %.c,%,$(SOURCES))
 
+.PHONY: test
+
 all: $(EXECUTABLES)
 
 %: %.c
@@ -55,5 +57,9 @@ clang-tidy:
 	# DeprecatedOrUnsafeBufferHandling: See https://stackoverflow.com/a/50724865/945780
 	clang-tidy psi-notify.c -checks=-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -- $(CFLAGS) $(LDFLAGS)
 
+test:
+	$(CC) $(CFLAGS) test/test.c -o test/test $(LIBS) $(LDFLAGS)
+	test/test
+
 clean:
-	rm -f $(EXECUTABLES)
+	rm -f $(EXECUTABLES) test/test

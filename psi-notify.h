@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <strings.h>
 
+/* Data structures */
+
 typedef enum ResourceType { RT_CPU, RT_MEMORY, RT_IO } ResourceType;
 
 typedef struct {
@@ -31,6 +33,8 @@ typedef struct {
     unsigned int update_interval;
     bool log_pressures;
 } Config;
+
+/* Utility macros and functions */
 
 #define info(format, ...) printf("INFO: " format, __VA_ARGS__)
 #define warn(format, ...) fprintf(stderr, "WARN: " format, __VA_ARGS__)

@@ -275,14 +275,18 @@ static void config_get_path(char *out) {
     }
 }
 
-static int config_update_from_file(void) {
+static int config_update_from_file(FILE **override_config) {
     char line[CONFIG_LINE_MAX];
     char config_path[PATH_MAX];
     FILE *f;
     int ret = 0;
 
-    config_get_path(config_path);
-    f = fopen(config_path, "re");
+    if (override_config) {
+        f = *override_config;
+    } else {
+        config_get_path(config_path);
+        f = fopen(config_path, "re");
+    }
 
     if (f) {
         config_reset_user_facing();
@@ -370,7 +374,7 @@ static void config_init() {
     cfg.io.human_name = "I/O";
     cfg.io.has_full = 1;
 
-    (void)config_update_from_file();
+    (void)config_update_from_file(NULL);
 }
 
 /*
@@ -598,6 +602,7 @@ static void print_config(void) {
     printf("\n");
 }
 
+#ifndef UNIT_TEST
 int main(int argc, char *argv[]) {
     unsigned long num_iters = 0;
 
@@ -646,7 +651,7 @@ int main(int argc, char *argv[]) {
 
         if (config_reload_pending) {
             sd_notify(0, "RELOADING=1\nSTATUS=Reloading config...");
-            if (config_update_from_file() == 0) {
+            if (config_update_from_file(NULL) == 0) {
                 print_config();
             }
             config_reload_pending = 0;
@@ -667,3 +672,4 @@ int main(int argc, char *argv[]) {
     alert_destroy_all_active();
     notify_uninit();
 }
+#endif /* UNIT_TEST */
