@@ -41,7 +41,11 @@ static void request_reload_config(int sig) {
 }
 
 static void request_exit(int sig) {
-    (void)sig;
+    if (!run) {
+        /* Asked to quit twice now, skip teardown. */
+        _exit(128 + sig);
+    }
+
     run = 0;
 }
 
