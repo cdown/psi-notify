@@ -277,7 +277,7 @@ static void config_get_path(char *out) {
 
 static int config_update_from_file(FILE **override_config) {
     char line[CONFIG_LINE_MAX];
-    char config_path[PATH_MAX];
+    char config_path[PATH_MAX] = "";
     FILE *f;
     int ret = 0;
 
@@ -298,11 +298,13 @@ static int config_update_from_file(FILE **override_config) {
             return -errno;
         }
 
-        if (errno == ENOENT) {
-            info("No config at %s, using defaults\n", config_path);
-        } else {
-            warn("Using default config, cannot open %s: %s\n", config_path,
-                 strerror(errno));
+        if (*config_path) {
+            if (errno == ENOENT) {
+                info("No config at %s, using defaults\n", config_path);
+            } else {
+                warn("Using default config, cannot open %s: %s\n", config_path,
+                     strerror(errno));
+            }
         }
 
         config_reset_user_facing();

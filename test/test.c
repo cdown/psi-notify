@@ -15,18 +15,20 @@
 #define COL_GREEN "\x1B[32m"
 #define COL_RED "\x1B[31m"
 
-#define t_assert(message, test)                                                \
+#define t_assert(test)                                                         \
     do {                                                                       \
         if (!(test)) {                                                         \
-            printf("%s[FAIL] %s%s\n", COL_RED, message, COL_NORMAL);           \
+            printf("  %s[FAIL] %s%s\n", COL_RED, #test, COL_NORMAL);           \
             return false;                                                      \
         }                                                                      \
-        printf("%s[PASS] %s%s\n", COL_GREEN, message, COL_NORMAL);             \
+        printf("  %s[PASS] %s%s\n", COL_GREEN, #test, COL_NORMAL);             \
     } while (0)
 
 #define t_run(test)                                                            \
     do {                                                                       \
+        printf("%s:\n", #test);                                                \
         bool ret = test();                                                     \
+        printf("\n");                                                          \
         if (!ret) {                                                            \
             return ret;                                                        \
         }                                                                      \
@@ -43,20 +45,33 @@ static bool test_config_parse_basic(void) {
     memset(&cfg, 0, sizeof(Config));
     config_update_from_file(&f);
 
-    t_assert("set update_interval", cfg.update_interval == 3);
-    t_assert("set log_pressures", cfg.log_pressures);
+    t_assert(cfg.update_interval == 3);
+    t_assert(cfg.log_pressures);
 
-    t_assert("set cpu thresh", cfg.cpu.thresholds.avg10.some == 50.00);
-    t_assert("set memory thresh", cfg.memory.thresholds.avg60.full == 10.00);
-    t_assert("set io thresh", cfg.io.thresholds.avg300.full == 100.00);
+    t_assert(cfg.cpu.thresholds.avg10.some == 50.00);
+    t_assert(cfg.memory.thresholds.avg60.full == 10.00);
+    t_assert(cfg.io.thresholds.avg300.full == 100.00);
 
-    t_assert("other thresh not set", isnan(cfg.cpu.thresholds.avg60.some));
+    t_assert(isnan(cfg.cpu.thresholds.avg60.some));
+
+    return true;
+}
+
+static bool test_config_parse_init_no_file_uses_defaults(void) {
+    FILE *f = NULL;
+    memset(&cfg, 0, sizeof(Config));
+    config_update_from_file(&f);
+
+    t_assert(cfg.cpu.thresholds.avg10.some == 50.00);
+    t_assert(cfg.memory.thresholds.avg10.some == 10.00);
+    t_assert(cfg.io.thresholds.avg10.some == 10.00);
 
     return true;
 }
 
 static bool run_tests(void) {
     t_run(test_config_parse_basic);
+    t_run(test_config_parse_init_no_file_uses_defaults);
     return true;
 }
 
