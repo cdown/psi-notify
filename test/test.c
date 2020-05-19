@@ -35,11 +35,13 @@
     } while (0)
 
 static bool test_config_parse_basic(void) {
-    const char *raw_config = "update 3\n"
-                             "threshold cpu some avg10 50.00\n"
-                             "threshold memory full avg60 10.00\n"
-                             "threshold io full avg300 100.00\n"
-                             "log_pressures yes";
+    const char *raw_config = "# Comment at beginning of line\n"
+                             "  # Comment with some spaces\n\n    \n"
+                             "update 3 # c\n"
+                             "threshold cpu some avg10 50.00 #c\n"
+                             "threshold memory full avg60 10.00 #c\n"
+                             "threshold io full avg300 100.00 #c\n"
+                             "log_pressures yes #c";
     FILE *f = fmemopen((void *)raw_config, strlen(raw_config), "r");
 
     memset(&cfg, 0, sizeof(Config));
