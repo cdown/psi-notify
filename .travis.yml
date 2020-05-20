@@ -39,3 +39,15 @@ jobs:
 
     - name: Build clang-everything (WANT_SD_NOTIFY=0)
       script: make clang-everything WANT_SD_NOTIFY=0
+
+    - name: Run unit tests (ppc64le)
+      script: make test
+      arch: ppc64le
+
+    - name: Run unit tests (s390x)
+      script: make test
+      arch: s390x
+
+    - name: Run unit tests (arm64)
+      script: make test
+      arch: arm64
