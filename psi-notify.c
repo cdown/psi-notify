@@ -543,7 +543,7 @@ static void suspend_for_remaining_interval(const struct timespec *in) {
         remaining.tv_nsec = 0;
     }
 
-    if (remaining.tv_sec >= cfg.update_interval) {
+    if (remaining.tv_sec >= (__time_t)cfg.update_interval) {
         warn("Timer elapsed %d seconds before we completed one event loop.\n",
              cfg.update_interval);
         return;
