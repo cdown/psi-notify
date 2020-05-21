@@ -57,6 +57,7 @@ clang-tidy:
 	# DeprecatedOrUnsafeBufferHandling: See https://stackoverflow.com/a/50724865/945780
 	clang-tidy psi-notify.c -checks=-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -- $(CFLAGS) $(LDFLAGS)
 
+test: CFLAGS+=-D_FORTIFY_SOURCE=2
 test:
 	$(CC) $(CFLAGS) test/test.c -o test/test $(LIBS) $(LDFLAGS)
 	test/test
