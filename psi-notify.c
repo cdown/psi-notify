@@ -215,7 +215,7 @@ static void config_update_interval(const char *line) {
     }
 
     /* Signed at first to avoid %u shenanigans with negatives */
-    cfg.update_interval = (unsigned int)rvalue;
+    cfg.update_interval = (time_t)rvalue;
 }
 
 static void config_update_log_pressures(const char *line) {
@@ -249,7 +249,7 @@ static void config_reset_user_facing(void) {
 #define WATCHDOG_GRACE_PERIOD_SEC 5
 #define SEC_TO_USEC 1000000
 static void watchdog_update_usec(void) {
-    sd_notifyf(0, "WATCHDOG_USEC=%d",
+    sd_notifyf(0, "WATCHDOG_USEC=%ld",
                (cfg.update_interval + WATCHDOG_GRACE_PERIOD_SEC) * SEC_TO_USEC);
 }
 
@@ -543,8 +543,8 @@ static void suspend_for_remaining_interval(const struct timespec *in) {
         remaining.tv_nsec = 0;
     }
 
-    if (remaining.tv_sec >= (__time_t)cfg.update_interval) {
-        warn("Timer elapsed %d seconds before we completed one event loop.\n",
+    if (remaining.tv_sec >= cfg.update_interval) {
+        warn("Timer elapsed %ld seconds before we completed one event loop.\n",
              cfg.update_interval);
         return;
     }
@@ -598,7 +598,7 @@ static void print_config(void) {
     info("%s:\n\n", header);
 
     printf("      Log pressures: %s\n", cfg.log_pressures ? "true" : "false");
-    printf("      Update interval: %ds\n\n", cfg.update_interval);
+    printf("      Update interval: %lds\n\n", cfg.update_interval);
 
     printf("      Thresholds:\n");
     for_each_arr (i, all_res) {
