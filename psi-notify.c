@@ -397,17 +397,13 @@ static int pressure_check_single_line(FILE *f, const Resource *r) {
                PRESSURE_LINE_LEN_STR
                " avg10=%lf avg60=%lf avg300=%lf total=%*s",
                type, &avg10, &avg60, &avg300) != 4) {
-        if (r->filename) {
-            warn("Can't parse pressures from %s\n", r->filename);
-        }
+        warn("Can't parse pressures from %s\n", strnull(r->filename));
         return -EINVAL;
     }
 
     if (cfg.log_pressures) {
-        if (r->human_name) {
-            info("Current %s pressures: %s avg10=%.2f avg60=%.2f avg300=%.2f\n",
-                 r->human_name, type, avg10, avg60, avg300);
-        }
+        info("Current %s pressures: %s avg10=%.2f avg60=%.2f avg300=%.2f\n",
+             strnull(r->human_name), type, avg10, avg60, avg300);
     }
 
     if (streq(type, "some")) {

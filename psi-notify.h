@@ -55,6 +55,7 @@ typedef struct {
 
 #define streq(a, b) (strcmp((a), (b)) == 0)
 #define strceq(a, b) (strcasecmp((a), (b)) == 0)
+#define strnull(s) s ? s : "[null]"
 
 static inline int blank_line_or_comment(const char *s) {
     while (isspace((unsigned char)*s)) {
