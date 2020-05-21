@@ -4,7 +4,7 @@ language: c
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get -y install libnotify-dev libsystemd-dev afl
+  - sudo apt-get -y install libnotify-dev libsystemd-dev afl clang clang-tidy
 
 env: AFL_NO_UI=1
 
@@ -22,32 +22,41 @@ jobs:
       - 'timeout -s INT --preserve-status 3m make fuzz-pressures; [[ $? == 130 ]]'
       - 'if (( "$(find fuzz/pressures/results/*/crashes -type f | wc -l)" != 0 )); then grep . fuzz/pressures/results/*/crashes/*; exit 1; fi'
 
-    - name: Run unit tests
-      script: make test
+    - name: Run x86_64 tests
+      script:
+        - make test
+        - make clean clang-tidy
+        - make clean clang-everything
+        - make clean test WANT_SD_NOTIFY=0
+        - make clean clang-tidy WANT_SD_NOTIFY=0
+        - make clean clang-everything WANT_SD_NOTIFY=0
 
-    - name: Build clang-tidy
-      script: make clang-tidy
-
-    - name: Build clang-everything
-      script: make clang-everything
-
-    - name: Run unit tests (WANT_SD_NOTIFY=0)
-      script: make test WANT_SD_NOTIFY=0
-
-    - name: Build clang-tidy (WANT_SD_NOTIFY=0)
-      script: make clang-tidy WANT_SD_NOTIFY=0
-
-    - name: Build clang-everything (WANT_SD_NOTIFY=0)
-      script: make clang-everything WANT_SD_NOTIFY=0
-
-    - name: Run unit tests (ppc64le)
-      script: make test
+    - name: Run ppc64le tests
+      script:
+        - make test
+        - make clean clang-tidy
+        - make clean clang-everything
+        - make clean test WANT_SD_NOTIFY=0
+        - make clean clang-tidy WANT_SD_NOTIFY=0
+        - make clean clang-everything WANT_SD_NOTIFY=0
       arch: ppc64le
 
-    - name: Run unit tests (s390x)
-      script: make test
+    - name: Run s390x tests
+      script:
+        - make test
+        - make clean clang-tidy
+        - make clean clang-everything
+        - make clean test WANT_SD_NOTIFY=0
+        - make clean clang-tidy WANT_SD_NOTIFY=0
+        - make clean clang-everything WANT_SD_NOTIFY=0
       arch: s390x
 
-    - name: Run unit tests (arm64)
-      script: make test
+    - name: Run arm64 tests
+      script:
+        - make test
+        - make clean clang-tidy
+        - make clean clang-everything
+        - make clean test WANT_SD_NOTIFY=0
+        - make clean clang-tidy WANT_SD_NOTIFY=0
+        - make clean clang-everything WANT_SD_NOTIFY=0
       arch: arm64
