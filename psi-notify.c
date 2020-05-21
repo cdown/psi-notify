@@ -250,7 +250,8 @@ static void config_reset_user_facing(void) {
 #define SEC_TO_USEC 1000000
 static void watchdog_update_usec(void) {
     sd_notifyf(0, "WATCHDOG_USEC=%lld",
-               ((long long)cfg.update_interval + WATCHDOG_GRACE_PERIOD_SEC) * SEC_TO_USEC);
+               ((long long)cfg.update_interval + WATCHDOG_GRACE_PERIOD_SEC) *
+                   SEC_TO_USEC);
 }
 
 static void config_get_path(char *out) {
