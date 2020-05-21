@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <strings.h>
+#include <time.h>
 
 /* Data structures */
 
@@ -30,7 +31,7 @@ typedef struct {
     Resource cpu;
     Resource memory;
     Resource io;
-    unsigned int update_interval;
+    time_t update_interval;
     bool log_pressures;
 } Config;
 
