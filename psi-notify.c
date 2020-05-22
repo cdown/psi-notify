@@ -118,8 +118,6 @@ static int get_psi_dir_fd() {
         return dir_fd;
     }
 
-    warn("%s\n", "No pressure dir found. "
-                 "Are you using kernel >=4.20 with CONFIG_PSI=y?");
     return -EINVAL;
 }
 
@@ -362,10 +360,22 @@ out_update_watchdog:
     return ret;
 }
 
-static void config_init(FILE **override_config) {
+static int config_init(FILE **override_config) {
+    int psi_dir_fd;
+    static bool already_ran = false;
+
+    expect(!already_ran);
+    already_ran = true;
+
     memset(&cfg, 0, sizeof(Config));
 
-    cfg.psi_dir_fd = get_psi_dir_fd();
+    psi_dir_fd = get_psi_dir_fd();
+    if (psi_dir_fd < 0) {
+        warn("%s\n", "No pressure dir found. "
+                     "Are you using kernel >=4.20 with CONFIG_PSI=y?");
+        return psi_dir_fd;
+    }
+    cfg.psi_dir_fd = psi_dir_fd;
 
     cfg.cpu.filename = get_psi_filename("cpu");
     cfg.cpu.type = RT_CPU;
@@ -383,6 +393,8 @@ static void config_init(FILE **override_config) {
     cfg.io.has_full = 1;
 
     (void)config_update_from_file(override_config);
+
+    return 0;
 }
 
 /*
@@ -577,7 +589,7 @@ static int check_fuzzers(void) {
         FILE *f = fopen(fuzz_config_file, "re");
 
         expect(f);
-        config_init(&f);
+        expect(config_init(&f) == 0);
         free(cfg.cpu.filename);
         free(cfg.memory.filename);
         free(cfg.io.filename);
@@ -636,7 +648,10 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    config_init(NULL);
+    if (config_init(NULL) != 0) {
+        return 1;
+    }
+
     expect(setvbuf(stdout, output_buf, _IOLBF, sizeof(output_buf)) == 0);
     configure_signal_handlers();
     expect(notify_init("psi-notify"));
