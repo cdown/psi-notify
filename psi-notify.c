@@ -104,37 +104,40 @@ static void alert_destroy_all_active(void) {
 
 #define PRESSURE_FILE_PATH_MAX sizeof("memory.pressure")
 
-static void get_psi_dir_and_filename(Resource *r, char *resource) {
+static int get_psi_dir_fd() {
     int dir_fd;
     char dir_path[PATH_MAX];
-    char *path;
-
-    path = malloc(PRESSURE_FILE_PATH_MAX);
-    expect(path);
 
     snprintf_check(dir_path, PATH_MAX,
                    "/sys/fs/cgroup/user.slice/user-%d.slice", getuid());
 
-    dir_fd = open(dir_path, O_RDONLY);
-    if (dir_fd > 0) {
+    if ((dir_fd = open(dir_path, O_RDONLY)) > 0) {
         using_seat = true;
-        r->dir_fd = dir_fd;
+        return dir_fd;
+    } else if ((dir_fd = open("/proc/pressure", O_RDONLY) > 0)) {
+        return dir_fd;
+    }
+
+    warn("%s\n", "No pressure dir found. "
+                 "Are you using kernel >=4.20 with CONFIG_PSI=y?");
+    return -EINVAL;
+}
+
+static char *get_psi_filename(char *resource) {
+    char *path;
+
+    expect(cfg.psi_dir_fd > 0);
+
+    path = malloc(PRESSURE_FILE_PATH_MAX);
+    expect(path);
+
+    if (using_seat) {
         snprintf_check(path, PRESSURE_FILE_PATH_MAX, "%s.pressure", resource);
-        r->filename = path;
-        return;
-    }
-
-    dir_fd = open("/proc/pressure", O_RDONLY);
-    if (dir_fd > 0) {
-        r->dir_fd = dir_fd;
+    } else {
         snprintf_check(path, PRESSURE_FILE_PATH_MAX, "%s", resource);
-        r->filename = path;
-        return;
     }
 
-    warn("Couldn't find any pressure file for resource %s, skipping.\n",
-         resource);
-    free(path);
+    return path;
 }
 
 #define CONFIG_LINE_MAX 256
@@ -362,17 +365,19 @@ out_update_watchdog:
 static void config_init(FILE **override_config) {
     memset(&cfg, 0, sizeof(Config));
 
-    get_psi_dir_and_filename(&cfg.cpu, "cpu");
+    cfg.psi_dir_fd = get_psi_dir_fd();
+
+    cfg.cpu.filename = get_psi_filename("cpu");
     cfg.cpu.type = RT_CPU;
     cfg.cpu.human_name = "CPU";
     cfg.cpu.has_full = 0;
 
-    get_psi_dir_and_filename(&cfg.memory, "memory");
+    cfg.memory.filename = get_psi_filename("memory");
     cfg.memory.type = RT_MEMORY;
     cfg.memory.human_name = "memory";
     cfg.memory.has_full = 1;
 
-    get_psi_dir_and_filename(&cfg.io, "io");
+    cfg.io.filename = get_psi_filename("io");
     cfg.io.type = RT_IO;
     cfg.io.human_name = "I/O";
     cfg.io.has_full = 1;
@@ -436,7 +441,7 @@ static int pressure_check(const Resource *r, FILE *override_file) {
         f = override_file;
         expect(f);
     } else {
-        fd = openat(r->dir_fd, r->filename, O_RDONLY | O_CLOEXEC);
+        fd = openat(cfg.psi_dir_fd, r->filename, O_RDONLY | O_CLOEXEC);
         if (fd < 0) {
             perror(r->filename);
             return -EINVAL;

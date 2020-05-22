@@ -19,7 +19,6 @@ typedef struct {
 } Pressure;
 
 typedef struct {
-    int dir_fd;
     char *filename;
     char *human_name;
     unsigned int has_full;
@@ -33,6 +32,7 @@ typedef struct {
     Resource io;
     time_t update_interval;
     bool log_pressures;
+    int psi_dir_fd;
 } Config;
 
 /* Utility macros and functions */
