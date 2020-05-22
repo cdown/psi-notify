@@ -67,8 +67,8 @@ static inline int blank_line_or_comment(const char *s) {
 
 static inline int parse_boolean(const char *s) {
     size_t i;
-    const char *const truthy[] = {"1", "yes", "true", "on"};
-    const char *const falsy[] = {"0", "no", "false", "off"};
+    const char *const truthy[] = {"1", "y", "yes", "true", "on"};
+    const char *const falsy[] = {"0", "n", "no", "false", "off"};
 
     for_each_arr (i, truthy) {
         if (strceq(s, truthy[i])) {
