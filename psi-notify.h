@@ -35,6 +35,12 @@ typedef struct {
     int psi_dir_fd;
 } Config;
 
+typedef struct {
+    NotifyNotification *notif;
+    time_t remaining_intervals;
+    bool logged_stabilising;
+} Alert;
+
 /* Utility macros and functions */
 
 #define info(format, ...) printf("INFO: " format, __VA_ARGS__)

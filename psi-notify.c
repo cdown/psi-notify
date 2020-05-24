@@ -28,11 +28,12 @@ static Config cfg;
 static char output_buf[512];
 static Resource *all_res[] = {&cfg.cpu, &cfg.memory, &cfg.io};
 static bool using_seat = false;
+static const time_t expiry_sec = 10;
 
-static NotifyNotification *active_notif[] = {
-    [RT_CPU] = NULL,
-    [RT_MEMORY] = NULL,
-    [RT_IO] = NULL,
+static Alert active_notif[] = {
+    [RT_CPU] = {NULL, 0, false},
+    [RT_MEMORY] = {NULL, 0, false},
+    [RT_IO] = {NULL, 0, false},
 };
 
 static void request_reload_config(int sig) {
@@ -94,9 +95,9 @@ static NotifyNotification *alert_user(const char *resource) {
 static void alert_destroy_all_active(void) {
     size_t i;
     for_each_arr (i, active_notif) {
-        if (active_notif[i]) {
-            NotifyNotification *n = active_notif[i];
-            active_notif[i] = NULL;
+        if (active_notif[i].notif) {
+            NotifyNotification *n = active_notif[i].notif;
+            active_notif[i].notif = NULL;
             alert_destroy(n);
         }
     }
@@ -493,25 +494,43 @@ out_fclose:
 
 /* 0 means already active, 1 means newly active. */
 static int alert_user_if_new(const Resource *r) {
-    if (active_notif[r->type]) {
+    time_t remaining_intervals;
+
+    if (active_notif[r->type].notif) {
         return 0;
     }
 
     LOG_ALERT_STATE(r, "active");
-    active_notif[r->type] = alert_user(r->human_name);
+
+    remaining_intervals = expiry_sec / cfg.update_interval;
+    if (remaining_intervals < 1) {
+        remaining_intervals = 1;
+    }
+
+    active_notif[r->type].notif = alert_user(r->human_name);
+    active_notif[r->type].remaining_intervals = remaining_intervals;
+    active_notif[r->type].logged_stabilising = false;
     return 1;
 }
 
 /* 0 means already inactive, 1 means newly inactive. */
 static int alert_stop(const Resource *r) {
-    NotifyNotification *n = active_notif[r->type];
+    NotifyNotification *n = active_notif[r->type].notif;
 
     if (!n) {
         return 0;
     }
 
+    if (--active_notif[r->type].remaining_intervals) {
+        /* Still got some more iterations to go before this can be closed. */
+        if (!active_notif[r->type].logged_stabilising) {
+            LOG_ALERT_STATE(r, "stabilising");
+        }
+        return 0;
+    }
+
     LOG_ALERT_STATE(r, "inactive");
-    active_notif[r->type] = NULL;
+    active_notif[r->type].notif = NULL;
     alert_destroy(n);
 
     return 1;
