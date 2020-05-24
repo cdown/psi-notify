@@ -82,15 +82,20 @@ static bool test_pressure_check(void) {
 
     config_init(&config_f);
 
-    /* Threshold are too low. */
+    /* Threshold are too low, but we're within 5 pct boundary. */
     psi_f = fmemopen((void *)raw_psi, strlen(raw_psi), "r");
     cfg.io.thresholds.avg300.full = 90.00;
-    t_assert(pressure_check(&cfg.io, psi_f) == 0);
+    t_assert(pressure_check(&cfg.io, psi_f) == 2);
 
     /* Add another threshold which trips. */
     psi_f = fmemopen((void *)raw_psi, strlen(raw_psi), "r");
-    cfg.io.thresholds.avg300.some = 9.99;
+    cfg.io.thresholds.avg300.full = 9.99;
     t_assert(pressure_check(&cfg.io, psi_f) == 1);
+
+    /* Thresholds are too low. */
+    psi_f = fmemopen((void *)raw_psi, strlen(raw_psi), "r");
+    cfg.io.thresholds.avg300.full = 95.00;
+    t_assert(pressure_check(&cfg.io, psi_f) == 0);
 
     return true;
 }

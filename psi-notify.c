@@ -29,6 +29,7 @@ static char output_buf[512];
 static Resource *all_res[] = {&cfg.cpu, &cfg.memory, &cfg.io};
 static bool using_seat = false;
 static const time_t expiry_sec = 10;
+static const double alert_clear_penalty = 5.0;
 
 static Alert active_notif[] = {
     [RT_CPU] = {NULL, 0, false},
@@ -408,6 +409,18 @@ static int config_init(FILE **override_config) {
 #define COMPARE_THRESH(threshold, current)                                     \
     (threshold >= 0 && current > threshold)
 
+#define MAX_PSI 100.00
+
+static double psi_penalty(double orig_psi) {
+    const double penalised_psi = orig_psi + alert_clear_penalty;
+
+    if (penalised_psi > MAX_PSI) {
+        return MAX_PSI;
+    }
+
+    return penalised_psi;
+}
+
 static int pressure_check_single_line(FILE *f, const Resource *r) {
     char type[PRESSURE_LINE_LEN];
     double avg10, avg60, avg300;
@@ -426,20 +439,40 @@ static int pressure_check_single_line(FILE *f, const Resource *r) {
     }
 
     if (streq(type, "some")) {
-        return COMPARE_THRESH(r->thresholds.avg10.some, avg10) ||
-               COMPARE_THRESH(r->thresholds.avg60.some, avg60) ||
-               COMPARE_THRESH(r->thresholds.avg300.some, avg300);
+        if (COMPARE_THRESH(r->thresholds.avg10.some, avg10) ||
+            COMPARE_THRESH(r->thresholds.avg60.some, avg60) ||
+            COMPARE_THRESH(r->thresholds.avg300.some, avg300)) {
+            return 1;
+        }
+
+        if (COMPARE_THRESH(r->thresholds.avg10.some, psi_penalty(avg10)) ||
+            COMPARE_THRESH(r->thresholds.avg60.some, psi_penalty(avg60)) ||
+            COMPARE_THRESH(r->thresholds.avg300.some, psi_penalty(avg300))) {
+            return 2;
+        }
+
+        return 0;
     } else if (streq(type, "full")) {
-        return COMPARE_THRESH(r->thresholds.avg10.full, avg10) ||
-               COMPARE_THRESH(r->thresholds.avg60.full, avg60) ||
-               COMPARE_THRESH(r->thresholds.avg300.full, avg300);
+        if (COMPARE_THRESH(r->thresholds.avg10.full, avg10) ||
+            COMPARE_THRESH(r->thresholds.avg60.full, avg60) ||
+            COMPARE_THRESH(r->thresholds.avg300.full, avg300)) {
+            return 1;
+        }
+
+        if (COMPARE_THRESH(r->thresholds.avg10.full, psi_penalty(avg10)) ||
+            COMPARE_THRESH(r->thresholds.avg60.full, psi_penalty(avg60)) ||
+            COMPARE_THRESH(r->thresholds.avg300.full, psi_penalty(avg300))) {
+            return 2;
+        }
+
+        return 0;
     }
 
     warn("Invalid type: %s\n", type);
     return -EINVAL;
 }
 
-/* >0: above thresholds, 0: within thresholds, <0: error */
+/* 2: grace threshold, 1: above thresholds, 0: within thresholds, <0: error */
 static int pressure_check(const Resource *r, FILE *override_file) {
     FILE *f;
     int fd;
@@ -545,6 +578,9 @@ static void pressure_check_notify_if_new(const Resource *r) {
             break;
         case 1:
             alert_user_if_new(r);
+            break;
+        case 2:
+            /* Grace period where we are hands-off, to avoid volatility. */
             break;
         default:
             warn("Error getting %s pressure: %s\n", r->human_name,
