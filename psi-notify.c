@@ -557,6 +557,7 @@ static int alert_stop(const Resource *r) {
     if (--active_notif[r->type].remaining_intervals) {
         /* Still got some more iterations to go before this can be closed. */
         if (!active_notif[r->type].logged_stabilising) {
+            active_notif[r->type].logged_stabilising = true;
             LOG_ALERT_STATE(r, "stabilising");
         }
         return 0;
