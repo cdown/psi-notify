@@ -1,5 +1,5 @@
-CFLAGS+=-std=gnu11 -O2 -pedantic -Wall -Wextra -Werror $(shell pkg-config --cflags libnotify)
-LDFLAGS=$(shell pkg-config --libs libnotify)
+CFLAGS:=-std=gnu11 -O2 -pedantic -Wall -Wextra -Werror $(shell pkg-config --cflags libnotify) $(CFLAGS)
+LDFLAGS:=$(shell pkg-config --libs libnotify) $(LDFLAGS)
 
 WANT_SD_NOTIFY=1
 HAS_LIBSYSTEMD=$(shell pkg-config libsystemd && echo 1 || echo 0)
