@@ -560,7 +560,7 @@ static int alert_stop(const Resource *r) {
             active_notif[r->type].logged_stabilising = true;
             LOG_ALERT_STATE(r, "stabilising");
         }
-        return 0;
+        return 1;
     }
 
     LOG_ALERT_STATE(r, "inactive");
