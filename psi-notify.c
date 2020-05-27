@@ -472,6 +472,32 @@ static int pressure_check_single_line(FILE *f, const Resource *r) {
     return -EINVAL;
 }
 
+static int openat_psi(const char *fn) {
+    int fd;
+
+    fd = openat(cfg.psi_dir_fd, fn, O_RDONLY | O_CLOEXEC);
+    if (fd > 0) {
+        return fd;
+    }
+
+    /* Maybe the cgroup or proc filesystem backing this disappeared? */
+    warn("PSI dir (%s) seems to have gone away, reopening\n",
+         using_seat ? "global" : "logind seat");
+    close(cfg.psi_dir_fd);
+
+    cfg.psi_dir_fd = get_psi_dir_fd();
+    if (cfg.psi_dir_fd < 0) {
+        die("%s\n", "PSI dir disappeared and can't be found again, exiting");
+    }
+
+    fd = openat(cfg.psi_dir_fd, fn, O_RDONLY | O_CLOEXEC);
+    if (fd > 0) {
+        return fd;
+    }
+
+    return -EINVAL;
+}
+
 /* 2: grace threshold, 1: above thresholds, 0: within thresholds, <0: error */
 static int pressure_check(const Resource *r, FILE *override_file) {
     FILE *f;
@@ -487,10 +513,11 @@ static int pressure_check(const Resource *r, FILE *override_file) {
         f = override_file;
         expect(f);
     } else {
-        fd = openat(cfg.psi_dir_fd, r->filename, O_RDONLY | O_CLOEXEC);
+        fd = openat_psi(r->filename);
+
         if (fd < 0) {
             perror(r->filename);
-            return -EINVAL;
+            return fd;
         }
 
         f = fdopen(fd, "r"); /* O_CLOEXEC is passed through */
@@ -695,8 +722,7 @@ int main(int argc, char *argv[]) {
     (void)argv;
 
     if (argc != 1) {
-        warn("%s doesn't accept any arguments.\n", argv[0]);
-        return 1;
+        die("%s doesn't accept any arguments.\n", argv[0]);
     }
 
     if (check_fuzzers()) {

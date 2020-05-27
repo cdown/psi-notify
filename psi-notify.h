@@ -45,12 +45,14 @@ typedef struct {
 
 #define info(format, ...) printf("INFO: " format, __VA_ARGS__)
 #define warn(format, ...) fprintf(stderr, "WARN: " format, __VA_ARGS__)
+#define die(format, ...)                                                       \
+    fprintf(stderr, "FATAL: " format, __VA_ARGS__);                            \
+    abort();
+
 #define expect(x)                                                              \
     do {                                                                       \
         if (!(x)) {                                                            \
-            fprintf(stderr, "FATAL: !(%s) at %s:%s:%d\n", #x, __FILE__,        \
-                    __func__, __LINE__);                                       \
-            abort();                                                           \
+            die("!(%s) at %s:%s:%d\n", #x, __FILE__, __func__, __LINE__);      \
         }                                                                      \
     } while (0)
 
