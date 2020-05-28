@@ -30,8 +30,8 @@ On Arch, the [psi-notify AUR
 package](https://aur.archlinux.org/packages/psi-notify/) is available.
 
 On Fedora and RHEL/CentOS 8, the [psi-notify
-package](https://src.fedoraproject.org/rpms/psi-notify) is available, and will
-shortly be pulled into Fedora/EPEL repositories.
+package](https://src.fedoraproject.org/rpms/psi-notify) is available in
+Fedora/EPEL.
 
 Otherwise, manual installation is as simple as running `make` and putting the
 resulting `psi-notify` binary in your PATH. You will need `libnotify`
