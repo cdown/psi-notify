@@ -409,13 +409,14 @@ static int config_init(FILE **override_config) {
 #define COMPARE_THRESH(threshold, current)                                     \
     (threshold >= 0 && current > threshold)
 
-#define MAX_PSI 100.00
+#define MIN_PSI 1.0
 
 static double psi_penalty(double orig_psi) {
-    const double penalised_psi = orig_psi + alert_clear_penalty;
+    const double penalised_psi = orig_psi - alert_clear_penalty;
 
-    if (penalised_psi > MAX_PSI) {
-        return MAX_PSI;
+    if (penalised_psi < MIN_PSI) {
+        /* Too small to make granular volatility decisions. */
+        return MIN_PSI;
     }
 
     return penalised_psi;
@@ -445,9 +446,9 @@ static int pressure_check_single_line(FILE *f, const Resource *r) {
             return 1;
         }
 
-        if (COMPARE_THRESH(r->thresholds.avg10.some, psi_penalty(avg10)) ||
-            COMPARE_THRESH(r->thresholds.avg60.some, psi_penalty(avg60)) ||
-            COMPARE_THRESH(r->thresholds.avg300.some, psi_penalty(avg300))) {
+        if (COMPARE_THRESH(psi_penalty(r->thresholds.avg10.some), avg10) ||
+            COMPARE_THRESH(psi_penalty(r->thresholds.avg60.some), avg60) ||
+            COMPARE_THRESH(psi_penalty(r->thresholds.avg300.some), avg300)) {
             return 2;
         }
 
@@ -459,9 +460,9 @@ static int pressure_check_single_line(FILE *f, const Resource *r) {
             return 1;
         }
 
-        if (COMPARE_THRESH(r->thresholds.avg10.full, psi_penalty(avg10)) ||
-            COMPARE_THRESH(r->thresholds.avg60.full, psi_penalty(avg60)) ||
-            COMPARE_THRESH(r->thresholds.avg300.full, psi_penalty(avg300))) {
+        if (COMPARE_THRESH(psi_penalty(r->thresholds.avg10.full), avg10) ||
+            COMPARE_THRESH(psi_penalty(r->thresholds.avg60.full), avg60) ||
+            COMPARE_THRESH(psi_penalty(r->thresholds.avg300.full), avg300)) {
             return 2;
         }
 
