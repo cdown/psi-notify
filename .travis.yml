@@ -45,15 +45,16 @@ jobs:
         - make clean clang-everything WANT_SD_NOTIFY=0
       arch: ppc64le
 
-    - name: Run s390x tests
-      script:
-        - make test
-        - make clean clang-tidy
-        - make clean clang-everything
-        - make clean test WANT_SD_NOTIFY=0
-        - make clean clang-tidy WANT_SD_NOTIFY=0
-        - make clean clang-everything WANT_SD_NOTIFY=0
-      arch: s390x
+      # Disabled until "automatic restarts limited" bug is fixed
+      #    - name: Run s390x tests
+      #      script:
+      #        - make test
+      #        - make clean clang-tidy
+      #        - make clean clang-everything
+      #        - make clean test WANT_SD_NOTIFY=0
+      #        - make clean clang-tidy WANT_SD_NOTIFY=0
+      #        - make clean clang-everything WANT_SD_NOTIFY=0
+      #      arch: s390x
 
     - name: Run arm64 tests
       script:
