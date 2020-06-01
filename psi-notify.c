@@ -31,10 +31,12 @@ static bool using_seat = false;
 static const time_t expiry_sec = 10;
 static const double alert_clear_penalty = 5.0;
 
+#define DEFAULT_ALERT_STATE                                                    \
+    { NULL, 0, A_INACTIVE }
 static Alert active_notif[] = {
-    [RT_CPU] = {NULL, 0, false},
-    [RT_MEMORY] = {NULL, 0, false},
-    [RT_IO] = {NULL, 0, false},
+    [RT_CPU] = DEFAULT_ALERT_STATE,
+    [RT_MEMORY] = DEFAULT_ALERT_STATE,
+    [RT_IO] = DEFAULT_ALERT_STATE,
 };
 
 static void request_reload_config(int sig) {
@@ -422,7 +424,7 @@ static double psi_penalty(double orig_psi) {
     return penalised_psi;
 }
 
-static int pressure_check_single_line(FILE *f, const Resource *r) {
+static AlertState pressure_check_single_line(FILE *f, const Resource *r) {
     char type[PRESSURE_LINE_LEN];
     double avg10, avg60, avg300;
 
@@ -431,7 +433,7 @@ static int pressure_check_single_line(FILE *f, const Resource *r) {
                " avg10=%lf avg60=%lf avg300=%lf total=%*s",
                type, &avg10, &avg60, &avg300) != 4) {
         warn("Can't parse pressures from %s\n", strnull(r->filename));
-        return -EINVAL;
+        return A_ERROR;
     }
 
     if (cfg.log_pressures) {
@@ -443,34 +445,34 @@ static int pressure_check_single_line(FILE *f, const Resource *r) {
         if (COMPARE_THRESH(r->thresholds.avg10.some, avg10) ||
             COMPARE_THRESH(r->thresholds.avg60.some, avg60) ||
             COMPARE_THRESH(r->thresholds.avg300.some, avg300)) {
-            return 1;
+            return A_ACTIVE;
         }
 
         if (COMPARE_THRESH(psi_penalty(r->thresholds.avg10.some), avg10) ||
             COMPARE_THRESH(psi_penalty(r->thresholds.avg60.some), avg60) ||
             COMPARE_THRESH(psi_penalty(r->thresholds.avg300.some), avg300)) {
-            return 2;
+            return A_STABILISING;
         }
 
-        return 0;
+        return A_INACTIVE;
     } else if (streq(type, "full")) {
         if (COMPARE_THRESH(r->thresholds.avg10.full, avg10) ||
             COMPARE_THRESH(r->thresholds.avg60.full, avg60) ||
             COMPARE_THRESH(r->thresholds.avg300.full, avg300)) {
-            return 1;
+            return A_ACTIVE;
         }
 
         if (COMPARE_THRESH(psi_penalty(r->thresholds.avg10.full), avg10) ||
             COMPARE_THRESH(psi_penalty(r->thresholds.avg60.full), avg60) ||
             COMPARE_THRESH(psi_penalty(r->thresholds.avg300.full), avg300)) {
-            return 2;
+            return A_STABILISING;
         }
 
-        return 0;
+        return A_INACTIVE;
     }
 
     warn("Invalid type: %s\n", type);
-    return -EINVAL;
+    return A_ERROR;
 }
 
 static int openat_psi(const char *fn) {
@@ -500,14 +502,14 @@ static int openat_psi(const char *fn) {
 }
 
 /* 2: grace threshold, 1: above thresholds, 0: within thresholds, <0: error */
-static int pressure_check(const Resource *r, FILE *override_file) {
+static AlertState pressure_check(const Resource *r, FILE *override_file) {
     FILE *f;
     int fd;
-    int ret = 0;
+    AlertState ret;
     char p_buf[PRESSURE_LINE_LEN * 2]; /* Avoiding slow _IO_doallocbuf */
 
     if (!r->filename && !override_file) {
-        return 0;
+        return A_INACTIVE;
     }
 
     if (override_file) {
@@ -518,7 +520,7 @@ static int pressure_check(const Resource *r, FILE *override_file) {
 
         if (fd < 0) {
             perror(r->filename);
-            return fd;
+            return A_ERROR;
         }
 
         f = fdopen(fd, "r"); /* O_CLOEXEC is passed through */
@@ -527,21 +529,15 @@ static int pressure_check(const Resource *r, FILE *override_file) {
     }
 
     ret = pressure_check_single_line(f, r);
-    if (ret) {
+    if (ret != A_INACTIVE) {
         goto out_fclose;
     }
 
     if (!r->has_full) {
-        ret = 0;
         goto out_fclose;
     }
 
     ret = pressure_check_single_line(f, r);
-    if (ret) {
-        goto out_fclose;
-    }
-
-    ret = 0;
 
 out_fclose:
     fclose(f);
@@ -557,7 +553,7 @@ out_fclose:
 static int alert_user_if_new(const Resource *r) {
     time_t remaining_intervals;
 
-    if (active_notif[r->type].notif) {
+    if (active_notif[r->type].last_state == A_ACTIVE) {
         return 0;
     }
 
@@ -568,27 +564,40 @@ static int alert_user_if_new(const Resource *r) {
         remaining_intervals = 1;
     }
 
-    active_notif[r->type].notif = alert_user(r->human_name);
+    /* A_STABILISING -> A_ACTIVE reuses the existing notification */
+    if (!active_notif[r->type].notif) {
+        active_notif[r->type].notif = alert_user(r->human_name);
+    }
+
     active_notif[r->type].remaining_intervals = remaining_intervals;
-    active_notif[r->type].logged_stabilising = false;
     return 1;
 }
 
-/* 0 means already inactive, 1 means newly inactive. */
+/* 0 means already stabilising, 1 means newly stabilising. */
+static int alert_stabilising(const Resource *r) {
+    if (active_notif[r->type].last_state == A_STABILISING) {
+        return 0;
+    }
+
+    if (active_notif[r->type].last_state == A_ACTIVE) {
+        LOG_ALERT_STATE(r, "stabilising");
+    }
+
+    return 1;
+}
+
+/* 0 means already inactive, 1 means newly inactive, 2 means stabilising. */
 static int alert_stop(const Resource *r) {
     NotifyNotification *n = active_notif[r->type].notif;
 
-    if (!n) {
+    if (active_notif[r->type].last_state == A_INACTIVE) {
         return 0;
     }
 
     if (--active_notif[r->type].remaining_intervals) {
         /* Still got some more iterations to go before this can be closed. */
-        if (!active_notif[r->type].logged_stabilising) {
-            active_notif[r->type].logged_stabilising = true;
-            LOG_ALERT_STATE(r, "stabilising");
-        }
-        return 1;
+        alert_stabilising(r);
+        return 2;
     }
 
     LOG_ALERT_STATE(r, "inactive");
@@ -599,23 +608,30 @@ static int alert_stop(const Resource *r) {
 }
 
 static void pressure_check_notify_if_new(const Resource *r) {
-    int ret = pressure_check(r, NULL);
+    AlertState ret = pressure_check(r, NULL);
+    bool time_stabilising = false;
 
     switch (ret) {
-        case 0:
-            alert_stop(r);
+        case A_INACTIVE:
+            time_stabilising = alert_stop(r) == 2;
             break;
-        case 1:
+        case A_ACTIVE:
             alert_user_if_new(r);
             break;
-        case 2:
+        case A_STABILISING:
             /* Grace period where we are hands-off, to avoid volatility. */
+            alert_stabilising(r);
             break;
         default:
-            warn("Error getting %s pressure: %s\n", r->human_name,
-                 strerror(abs(ret)));
-            break;
+            /* Already warned inside pressure_check(). */
+            return;
     }
+
+    if (time_stabilising) {
+        ret = A_STABILISING;
+    }
+
+    active_notif[r->type].last_state = ret;
 }
 
 #define SEC_TO_NSEC 1000000000
