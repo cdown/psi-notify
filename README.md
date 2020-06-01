@@ -54,7 +54,7 @@ log_pressures false
 
 threshold cpu some avg10 50.00
 threshold memory some avg10 10.00
-threshold io some avg10 10.00
+threshold io full avg10 15.00
 ```
 
 The above is the default configuration if no config file exists. You may have

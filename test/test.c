@@ -68,7 +68,7 @@ static bool test_config_parse_init_no_file_uses_defaults(void) {
 
     t_assert(cfg.cpu.thresholds.avg10.some == 50.00);
     t_assert(cfg.memory.thresholds.avg10.some == 10.00);
-    t_assert(cfg.io.thresholds.avg10.some == 10.00);
+    t_assert(cfg.io.thresholds.avg10.full == 15.00);
 
     return true;
 }

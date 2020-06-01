@@ -317,7 +317,7 @@ static int config_update_from_file(FILE **override_config) {
 
         cfg.cpu.thresholds.avg10.some = 50.00;
         cfg.memory.thresholds.avg10.some = 10.00;
-        cfg.io.thresholds.avg10.some = 10.00;
+        cfg.io.thresholds.avg10.full = 15.00;
 
         ret = -errno;
         goto out_update_watchdog;
