@@ -6,6 +6,12 @@
 /* Data structures */
 
 typedef enum ResourceType { RT_CPU, RT_MEMORY, RT_IO } ResourceType;
+typedef enum AlertState {
+    A_INACTIVE,
+    A_ACTIVE,
+    A_STABILISING,
+    A_ERROR
+} AlertState;
 
 typedef struct {
     double some;
@@ -38,7 +44,7 @@ typedef struct {
 typedef struct {
     NotifyNotification *notif;
     time_t remaining_intervals;
-    bool logged_stabilising;
+    AlertState last_state;
 } Alert;
 
 /* Utility macros and functions */
@@ -47,8 +53,9 @@ typedef struct {
 #define warn(format, ...) fprintf(stderr, "WARN: " format, __VA_ARGS__)
 #define die(format, ...)                                                       \
     fprintf(stderr, "FATAL: " format, __VA_ARGS__);                            \
-    abort();
+    abort()
 
+#define unreachable() die("%s\n", "Allegedly unreachable code reached\n")
 #define expect(x)                                                              \
     do {                                                                       \
         if (!(x)) {                                                            \

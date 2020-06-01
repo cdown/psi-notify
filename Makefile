@@ -33,7 +33,7 @@ all: $(EXECUTABLES)
 # Noisy clang build that's expected to fail, but can be useful to find corner
 # cases.
 clang-everything: CC=clang
-clang-everything: CFLAGS+=-Weverything -Wno-disabled-macro-expansion -Wno-padded -Wno-unused-macros
+clang-everything: CFLAGS+=-Weverything -Wno-disabled-macro-expansion -Wno-padded -Wno-unused-macros -Wno-covered-switch-default
 clang-everything: all
 
 sanitisers: CFLAGS+=-fsanitize=address -fsanitize=undefined
