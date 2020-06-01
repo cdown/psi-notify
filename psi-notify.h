@@ -99,3 +99,7 @@ static inline int parse_boolean(const char *s) {
 
     return -EINVAL;
 }
+
+static inline char *active_inactive(Alert *a) {
+    return a->notif ? "active" : "inactive";
+}

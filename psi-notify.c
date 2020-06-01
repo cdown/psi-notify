@@ -791,7 +791,13 @@ int main(int argc, char *argv[]) {
             }
             config_reload_pending = 0;
         } else if (run) {
-            sd_notify(0, "STATUS=Waiting for next interval.");
+            sd_notifyf(
+                0,
+                "STATUS=Waiting. Current alerts: CPU: %s, memory: %s, I/O: %s",
+                active_inactive(&active_notif[RT_CPU]),
+                active_inactive(&active_notif[RT_MEMORY]),
+                active_inactive(&active_notif[RT_IO]));
+
             suspend_for_remaining_interval(&in);
         }
 
