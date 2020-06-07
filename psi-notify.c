@@ -108,7 +108,7 @@ static void alert_destroy_all_active(void) {
 
 #define PRESSURE_FILE_PATH_MAX sizeof("memory.pressure")
 
-static int get_psi_dir_fd() {
+static int get_psi_dir_fd(void) {
     int dir_fd;
     char dir_path[PATH_MAX];
 
