@@ -118,7 +118,7 @@ static int get_psi_dir_fd(void) {
     if ((dir_fd = open(dir_path, O_RDONLY)) > 0) {
         using_seat = true;
         return dir_fd;
-    } else if ((dir_fd = open("/proc/pressure", O_RDONLY) > 0)) {
+    } else if ((dir_fd = open("/proc/pressure", O_RDONLY)) > 0) {
         return dir_fd;
     }
 
