@@ -485,7 +485,7 @@ static int openat_psi(const char *fn) {
 
     /* Maybe the cgroup or proc filesystem backing this disappeared? */
     warn("PSI dir (%s) seems to have gone away, reopening\n",
-         using_seat ? "global" : "logind seat");
+         using_seat ? "logind seat" : "global");
     close(cfg.psi_dir_fd);
 
     cfg.psi_dir_fd = get_psi_dir_fd();
