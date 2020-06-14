@@ -1,0 +1,14 @@
+#!/usr/bin/make -f
+
+ROOT=$(CURDIR)/debian/psi-notify
+
+%:
+	dh $@
+
+override_dh_auto_test:
+	echo Tests are skipped
+
+override_dh_auto_install:
+	install -d -m 755 $(ROOT)/usr/bin
+	install -s -m 755 psi-notify $(ROOT)/usr/bin/
+
