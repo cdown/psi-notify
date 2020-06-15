@@ -297,11 +297,13 @@ static int config_update_from_file(FILE **override_config) {
     if (f) {
         config_reset_user_facing();
     } else {
+        ret = -errno;
+
         if (config_reload_pending) {
             /* This was from a SIGHUP, so we already have a config. Keep it. */
             warn("Config reload request ignored, cannot open %s: %s\n",
                  config_path, strerror(errno));
-            return -errno;
+            return ret;
         }
 
         if (*config_path) {
@@ -319,7 +321,6 @@ static int config_update_from_file(FILE **override_config) {
         cfg.memory.thresholds.avg10.some = 10.00;
         cfg.io.thresholds.avg10.full = 15.00;
 
-        ret = -errno;
         goto out_update_watchdog;
     }
 
