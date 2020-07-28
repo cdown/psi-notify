@@ -4,6 +4,7 @@
 #include <libnotify/notify.h>
 #include <linux/limits.h>
 #include <pwd.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -735,6 +736,18 @@ static void print_config(void) {
     printf("\n");
 }
 
+static void block_all_signals(void) {
+    sigset_t mask;
+    sigfillset(&mask);
+    expect(sigprocmask(SIG_SETMASK, &mask, NULL) == 0);
+}
+
+static void unblock_all_signals(void) {
+    sigset_t mask;
+    sigemptyset(&mask);
+    expect(sigprocmask(SIG_SETMASK, &mask, NULL) == 0);
+}
+
 #ifndef UNIT_TEST
 int main(int argc, char *argv[]) {
     unsigned long num_iters = 0;
@@ -756,6 +769,9 @@ int main(int argc, char *argv[]) {
 
     expect(setvbuf(stdout, output_buf, _IOLBF, sizeof(output_buf)) == 0);
     configure_signal_handlers();
+
+    /* Before glib spawns threads, make sure we're blocked. */
+    block_all_signals();
     expect(notify_init("psi-notify"));
 
     if (using_seat) {
@@ -785,6 +801,8 @@ int main(int argc, char *argv[]) {
 
         for_each_arr (i, all_res) { pressure_check_notify_if_new(all_res[i]); }
 
+        unblock_all_signals();
+
         if (config_reload_pending) {
             sd_notify(0, "RELOADING=1\nSTATUS=Reloading config...");
             if (config_update_from_file(NULL) == 0) {
@@ -803,7 +821,11 @@ int main(int argc, char *argv[]) {
         }
 
         ++num_iters;
+
+        block_all_signals();
     }
+
+    unblock_all_signals();
 
     info("Terminating after %lu intervals elapsed.\n", num_iters);
     sd_notify(0, "STOPPING=1\nSTATUS=Tearing down...");
