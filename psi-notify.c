@@ -67,6 +67,23 @@ static void configure_signal_handlers(void) {
     expect(sigaction(SIGINT, &sa_exit, NULL) >= 0);
 }
 
+static void block_all_signals(void) {
+    sigset_t mask;
+    sigfillset(&mask);
+    expect(sigprocmask(SIG_SETMASK, &mask, NULL) == 0);
+}
+
+static void unblock_all_signals(void) {
+    sigset_t mask;
+    sigemptyset(&mask);
+    expect(sigprocmask(SIG_SETMASK, &mask, NULL) == 0);
+}
+
+static void check_signals(void) {
+    unblock_all_signals();
+    block_all_signals();
+}
+
 static void alert_destroy(NotifyNotification *n) {
     (void)notify_notification_close(n, NULL);
     g_object_unref(G_OBJECT(n));
@@ -644,6 +661,7 @@ static void suspend_for_remaining_interval(const struct timespec *in) {
     struct timespec out, remaining;
 
     if (cfg.update_interval == 0) {
+        check_signals();
         return;
     }
 
@@ -666,12 +684,15 @@ static void suspend_for_remaining_interval(const struct timespec *in) {
     }
 
     if (remaining.tv_sec >= cfg.update_interval) {
+        check_signals();
         warn("Timer elapsed %lld seconds before we completed one event loop.\n",
              (long long)cfg.update_interval);
         return;
     }
 
+    unblock_all_signals();
     expect(nanosleep(&remaining, NULL) == 0 || errno == EINTR);
+    block_all_signals();
 }
 
 /* If running under AFL, just run the code and exit. Returns 1 if fuzzing. */
@@ -736,18 +757,6 @@ static void print_config(void) {
     printf("\n");
 }
 
-static void block_all_signals(void) {
-    sigset_t mask;
-    sigfillset(&mask);
-    expect(sigprocmask(SIG_SETMASK, &mask, NULL) == 0);
-}
-
-static void unblock_all_signals(void) {
-    sigset_t mask;
-    sigemptyset(&mask);
-    expect(sigprocmask(SIG_SETMASK, &mask, NULL) == 0);
-}
-
 #ifndef UNIT_TEST
 int main(int argc, char *argv[]) {
     unsigned long num_iters = 0;
@@ -794,6 +803,15 @@ int main(int argc, char *argv[]) {
         size_t i;
         struct timespec in;
 
+        if (config_reload_pending) {
+            sd_notify(0, "RELOADING=1\nSTATUS=Reloading config...");
+            if (config_update_from_file(NULL) == 0) {
+                print_config();
+            }
+            config_reload_pending = 0;
+            continue;
+        }
+
         expect(clock_gettime(CLOCK_MONOTONIC, &in) == 0);
 
         sd_notify(0, "READY=1\nWATCHDOG=1\n"
@@ -801,30 +819,18 @@ int main(int argc, char *argv[]) {
 
         for_each_arr (i, all_res) { pressure_check_notify_if_new(all_res[i]); }
 
-        unblock_all_signals();
+        sd_notifyf(
+            0, "STATUS=Waiting. Current alerts: CPU: %s, memory: %s, I/O: %s",
+            active_inactive(&active_notif[RT_CPU]),
+            active_inactive(&active_notif[RT_MEMORY]),
+            active_inactive(&active_notif[RT_IO]));
 
-        if (config_reload_pending) {
-            sd_notify(0, "RELOADING=1\nSTATUS=Reloading config...");
-            if (config_update_from_file(NULL) == 0) {
-                print_config();
-            }
-            config_reload_pending = 0;
-        } else if (run) {
-            sd_notifyf(
-                0,
-                "STATUS=Waiting. Current alerts: CPU: %s, memory: %s, I/O: %s",
-                active_inactive(&active_notif[RT_CPU]),
-                active_inactive(&active_notif[RT_MEMORY]),
-                active_inactive(&active_notif[RT_IO]));
-
-            suspend_for_remaining_interval(&in);
-        }
+        suspend_for_remaining_interval(&in);
 
         ++num_iters;
-
-        block_all_signals();
     }
 
+    /* Another SIGTERM/SIGINT will just run _exit(), see request_exit() */
     unblock_all_signals();
 
     info("Terminating after %lu intervals elapsed.\n", num_iters);
