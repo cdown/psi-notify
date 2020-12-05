@@ -30,7 +30,7 @@ static char output_buf[512];
 static Resource *all_res[] = {&cfg.cpu, &cfg.memory, &cfg.io};
 static bool using_seat = false;
 static const time_t expiry_sec = 10;
-static const double alert_clear_penalty = 5.0;
+static const double alert_clear_hysteresis = 5.0;
 
 #define DEFAULT_ALERT_STATE                                                    \
     { NULL, 0, A_INACTIVE }
@@ -415,8 +415,8 @@ static int config_init(FILE **override_config) {
 
 #define MIN_PSI 1.0
 
-static double psi_penalty(double orig_psi) {
-    const double penalised_psi = orig_psi - alert_clear_penalty;
+static double psi_hysteresis(double orig_psi) {
+    const double penalised_psi = orig_psi - alert_clear_hysteresis;
 
     if (penalised_psi < MIN_PSI) {
         /* Too small to make granular volatility decisions. */
@@ -450,9 +450,9 @@ static AlertState pressure_check_single_line(FILE *f, const Resource *r) {
             return A_ACTIVE;
         }
 
-        if (COMPARE_THRESH(psi_penalty(r->thresholds.avg10.some), avg10) ||
-            COMPARE_THRESH(psi_penalty(r->thresholds.avg60.some), avg60) ||
-            COMPARE_THRESH(psi_penalty(r->thresholds.avg300.some), avg300)) {
+        if (COMPARE_THRESH(psi_hysteresis(r->thresholds.avg10.some), avg10) ||
+            COMPARE_THRESH(psi_hysteresis(r->thresholds.avg60.some), avg60) ||
+            COMPARE_THRESH(psi_hysteresis(r->thresholds.avg300.some), avg300)) {
             return A_STABILISING;
         }
 
@@ -464,9 +464,9 @@ static AlertState pressure_check_single_line(FILE *f, const Resource *r) {
             return A_ACTIVE;
         }
 
-        if (COMPARE_THRESH(psi_penalty(r->thresholds.avg10.full), avg10) ||
-            COMPARE_THRESH(psi_penalty(r->thresholds.avg60.full), avg60) ||
-            COMPARE_THRESH(psi_penalty(r->thresholds.avg300.full), avg300)) {
+        if (COMPARE_THRESH(psi_hysteresis(r->thresholds.avg10.full), avg10) ||
+            COMPARE_THRESH(psi_hysteresis(r->thresholds.avg60.full), avg60) ||
+            COMPARE_THRESH(psi_hysteresis(r->thresholds.avg300.full), avg300)) {
             return A_STABILISING;
         }
 
