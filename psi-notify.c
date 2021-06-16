@@ -547,9 +547,11 @@ out_fclose:
 }
 
 #define LOG_ALERT_STATE(r, state)                                              \
-    expect(*r->human_name);                                                    \
-    info("%c%s alert: %s\n", toupper(r->human_name[0]), r->human_name + 1,     \
-         state)
+    do {                                                                       \
+        expect(*r->human_name);                                                \
+        info("%c%s alert: %s\n", toupper(r->human_name[0]), r->human_name + 1, \
+             state);                                                           \
+    } while (0)
 
 /* 0 means already active, 1 means newly active. */
 static int alert_user_if_new(const Resource *r) {
