@@ -55,12 +55,13 @@ jobs:
         - make clean clang-everything WANT_SD_NOTIFY=0
       arch: s390x
 
-    - name: Run arm64 tests
-      script:
-        - make test
-        - make clean clang-tidy
-        - make clean clang-everything
-        - make clean test WANT_SD_NOTIFY=0
-        - make clean clang-tidy WANT_SD_NOTIFY=0
-        - make clean clang-everything WANT_SD_NOTIFY=0
-      arch: arm64
+    # ARM64 machines are super unreliable to reserve on Travis, sigh...
+    #- name: Run arm64 tests
+    #  script:
+    #    - make test
+    #    - make clean clang-tidy
+    #    - make clean clang-everything
+    #    - make clean test WANT_SD_NOTIFY=0
+    #    - make clean clang-tidy WANT_SD_NOTIFY=0
+    #    - make clean clang-everything WANT_SD_NOTIFY=0
+    #  arch: arm64
