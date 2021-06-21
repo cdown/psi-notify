@@ -52,8 +52,10 @@ typedef struct {
 #define info(format, ...) printf("INFO: " format, __VA_ARGS__)
 #define warn(format, ...) fprintf(stderr, "WARN: " format, __VA_ARGS__)
 #define die(format, ...)                                                       \
-    fprintf(stderr, "FATAL: " format, __VA_ARGS__);                            \
-    abort()
+    do {                                                                       \
+        fprintf(stderr, "FATAL: " format, __VA_ARGS__);                        \
+        abort();                                                               \
+    } while (0)
 
 #define unreachable() die("%s\n", "Allegedly unreachable code reached\n")
 #define expect(x)                                                              \
