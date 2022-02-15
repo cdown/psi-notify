@@ -322,7 +322,8 @@ static int config_update_from_file(FILE **override_config) {
         cfg.memory.thresholds.avg10.some = 10.00;
         cfg.io.thresholds.avg10.full = 15.00;
 
-        goto out_update_watchdog;
+        watchdog_update_usec();
+        return ret;
     }
 
     while (fgets(line, sizeof(line), f)) {
@@ -359,10 +360,7 @@ static int config_update_from_file(FILE **override_config) {
     }
 
     fclose(f);
-
-out_update_watchdog:
     watchdog_update_usec();
-
     return ret;
 }
 
@@ -531,17 +529,10 @@ static AlertState pressure_check(const Resource *r, FILE *override_file) {
     }
 
     ret = pressure_check_single_line(f, r);
-    if (ret != A_INACTIVE) {
-        goto out_fclose;
+    if (ret == A_INACTIVE && r->has_full) {
+        ret = pressure_check_single_line(f, r);
     }
 
-    if (!r->has_full) {
-        goto out_fclose;
-    }
-
-    ret = pressure_check_single_line(f, r);
-
-out_fclose:
     fclose(f);
     return ret;
 }
