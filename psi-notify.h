@@ -66,7 +66,10 @@ typedef struct {
     } while (0)
 
 #define snprintf_check(buf, len, fmt, ...)                                     \
-    expect((size_t)snprintf(buf, len, fmt, __VA_ARGS__) < (len))
+    do {                                                                       \
+        int needed = snprintf(buf, len, fmt, __VA_ARGS__);                     \
+        expect(needed >= 0 && (size_t)needed < (len));                         \
+    } while (0)
 
 #define for_each_arr(i, items)                                                 \
     for (i = 0; i < sizeof(items) / sizeof(items[0]); i++)
