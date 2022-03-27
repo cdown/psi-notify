@@ -745,8 +745,6 @@ static void unblock_all_signals(void) {
 int main(int argc, char *argv[]) {
     unsigned long num_iters = 0;
 
-    (void)argv;
-
     if (argc != 1) {
         die("%s doesn't accept any arguments.\n", argv[0]);
     }
