@@ -62,9 +62,9 @@ static void configure_signal_handlers(void) {
         sigaction(SIGHUP,
                   &(const struct sigaction){.sa_handler = request_reload_config,
                                             .sa_flags = SA_RESTART},
-                  NULL) >= 0);
-    expect(sigaction(SIGTERM, &sa_exit, NULL) >= 0);
-    expect(sigaction(SIGINT, &sa_exit, NULL) >= 0);
+                  NULL) == 0);
+    expect(sigaction(SIGTERM, &sa_exit, NULL) == 0);
+    expect(sigaction(SIGINT, &sa_exit, NULL) == 0);
 }
 
 static void alert_destroy(NotifyNotification *n) {
