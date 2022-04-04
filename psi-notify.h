@@ -39,6 +39,7 @@ typedef struct {
     time_t update_interval;
     bool log_pressures;
     int psi_dir_fd;
+    int io_min_blocked_tasks;
 } Config;
 
 typedef struct {

@@ -396,9 +396,36 @@ static int config_init(FILE **override_config) {
     cfg.io.human_name = "I/O";
     cfg.io.has_full = 1;
 
+    /* Currently not user configurable, file an issue if you need it to be. */
+    cfg.io_min_blocked_tasks = 2;
+
     (void)config_update_from_file(override_config);
 
     return 0;
+}
+
+static int get_nr_blocked_tasks(void) {
+    /*
+     * If in future system wide metrics prove not granular enough for purpose,
+     * iterate cgroup.threads recursively inside the seat cgroup.
+     */
+    FILE *f = fopen("/proc/stat", "re");
+    int procs_blocked, ch;
+
+    expect(f);
+
+    while (!feof(f)) {
+        if (fscanf(f, "procs_blocked %d", &procs_blocked) == 1) {
+            fclose(f);
+            return procs_blocked;
+        } else {
+            while ((ch = fgetc(f)) != EOF && ch != '\n')
+                ;
+        }
+    }
+
+    fclose(f);
+    return -ENODATA;
 }
 
 /*
@@ -456,6 +483,22 @@ static AlertState pressure_check_single_line(FILE *f, const Resource *r) {
 
         return A_INACTIVE;
     } else if (streq(type, "full")) {
+        if (r->type == RT_IO &&
+            active_notif[r->type].last_state == A_INACTIVE) {
+            /*
+             * On a desktop system there's usually very few runnable tasks,
+             * which means that a single task doing slow I/O can
+             * disproportionately bump IO full for the whole system or user
+             * scope. To work around this, require that at least two tasks are
+             * blocked to issue warnings based on IO metrics. Checking if the
+             * last state was inactive avoids flapping if the blocked number
+             * varies repeatedly.
+             */
+            if (get_nr_blocked_tasks() < cfg.io_min_blocked_tasks) {
+                return A_INACTIVE;
+            }
+        }
+
         if (COMPARE_THRESH(r->thresholds.avg10.full, avg10) ||
             COMPARE_THRESH(r->thresholds.avg60.full, avg60) ||
             COMPARE_THRESH(r->thresholds.avg300.full, avg300)) {
