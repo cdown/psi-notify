@@ -84,18 +84,18 @@ static bool test_pressure_check(void) {
 
     /* Threshold are too low, but we're within 5 pct boundary. */
     psi_f = fmemopen((void *)raw_psi, strlen(raw_psi), "r");
-    cfg.io.thresholds.avg300.full = 90.00;
-    t_assert(pressure_check(&cfg.io, psi_f) == A_STABILISING);
+    cfg.memory.thresholds.avg300.full = 90.00;
+    t_assert(pressure_check(&cfg.memory, psi_f) == A_STABILISING);
 
     /* Add another threshold which trips. */
     psi_f = fmemopen((void *)raw_psi, strlen(raw_psi), "r");
-    cfg.io.thresholds.avg300.full = 9.99;
-    t_assert(pressure_check(&cfg.io, psi_f) == A_ACTIVE);
+    cfg.memory.thresholds.avg300.full = 9.99;
+    t_assert(pressure_check(&cfg.memory, psi_f) == A_ACTIVE);
 
     /* Thresholds are too low. */
     psi_f = fmemopen((void *)raw_psi, strlen(raw_psi), "r");
-    cfg.io.thresholds.avg300.full = 95.00;
-    t_assert(pressure_check(&cfg.io, psi_f) == A_INACTIVE);
+    cfg.memory.thresholds.avg300.full = 95.00;
+    t_assert(pressure_check(&cfg.memory, psi_f) == A_INACTIVE);
 
     return true;
 }
