@@ -485,6 +485,8 @@ static AlertState pressure_check_single_line(FILE *f, const Resource *r) {
     } else if (streq(type, "full")) {
         if (r->type == RT_IO &&
             active_notif[r->type].last_state == A_INACTIVE) {
+            int ret;
+
             /*
              * On a desktop system there's usually very few runnable tasks,
              * which means that a single task doing slow I/O can
@@ -494,7 +496,8 @@ static AlertState pressure_check_single_line(FILE *f, const Resource *r) {
              * last state was inactive avoids flapping if the blocked number
              * varies repeatedly.
              */
-            if (get_nr_blocked_tasks() < cfg.io_min_blocked_tasks) {
+            ret = get_nr_blocked_tasks();
+            if (ret >= 0 && ret < cfg.io_min_blocked_tasks) {
                 return A_INACTIVE;
             }
         }
