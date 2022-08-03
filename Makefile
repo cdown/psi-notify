@@ -1,6 +1,10 @@
 CFLAGS:=-std=gnu11 -O2 -pedantic -Wall -Wextra -Werror $(shell pkg-config --cflags libnotify) $(CFLAGS)
 LDFLAGS:=$(shell pkg-config --libs libnotify) $(LDFLAGS)
 
+INSTALL:=install
+prefix:=/usr/local
+bindir:=$(prefix)/bin
+
 WANT_SD_NOTIFY=1
 HAS_LIBSYSTEMD=$(shell pkg-config libsystemd && echo 1 || echo 0)
 
@@ -56,6 +60,11 @@ fuzz-pressures: afl
 clang-tidy:
 	# DeprecatedOrUnsafeBufferHandling: See https://stackoverflow.com/a/50724865/945780
 	clang-tidy psi-notify.c -checks=-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling -- $(CFLAGS) $(LDFLAGS)
+
+install: all
+	mkdir -p $(DESTDIR)$(bindir)/
+	$(INSTALL) -pt $(DESTDIR)$(bindir)/ $(EXECUTABLES)
+	$(INSTALL) -Dp -m 644 psi-notify.service $(DESTDIR)$(prefix)/lib/systemd/user/psi-notify.service
 
 test: CFLAGS+=-D_FORTIFY_SOURCE=2
 test:
