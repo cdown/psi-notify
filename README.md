@@ -17,7 +17,7 @@ utilisation graphs and other metrics cannot.
 - Runs unprivileged
 - Minimal resource usage
 - Works with any notifier using [Desktop
-  Notifications](http://www.galago-project.org/specs/notification/0.9/index.html)
+  Notifications](https://specifications.freedesktop.org/notification-spec/latest/)
 
 ## Requirements
 
@@ -29,9 +29,20 @@ utilisation graphs and other metrics cannot.
 On Arch, the [psi-notify AUR
 package](https://aur.archlinux.org/packages/psi-notify/) is available.
 
+On Debian (bookworm and sid), the [psi-notify package
+](https://packages.debian.org/search?keywords=psi-notify) is available.
+
 On Fedora and RHEL/CentOS 8, the [psi-notify
 package](https://src.fedoraproject.org/rpms/psi-notify) is available in
 Fedora/EPEL.
+
+On Ubuntu, the [psi-notify package
+](https://packages.ubuntu.com/search?keywords=psi-notify) is in kinetic. For
+older releases, please use the [psi-notify PPA
+](https://launchpad.net/~michel-slm/+archive/ubuntu/psi-notify).
+
+You can also find packages in [Repology
+](https://repology.org/project/psi-notify/versions).
 
 Otherwise, manual installation is as simple as running `make` and putting the
 resulting `psi-notify` binary in your PATH. You will need `libnotify`
