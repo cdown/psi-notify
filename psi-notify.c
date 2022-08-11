@@ -126,10 +126,11 @@ static int get_psi_dir_fd(void) {
     return -EINVAL;
 }
 
-static char *get_psi_filename(char *resource) {
+static char *get_psi_filename(char *resource, bool in_test) {
     char *path;
 
-    expect(cfg.psi_dir_fd > 0);
+    /* In a test environment we will read from an fmemopen()ed string */
+    expect(cfg.psi_dir_fd > 0 || in_test);
 
     path = malloc(PRESSURE_FILE_PATH_MAX);
     expect(path);
@@ -374,24 +375,25 @@ static int config_init(FILE **override_config) {
     memset(&cfg, 0, sizeof(Config));
 
     psi_dir_fd = get_psi_dir_fd();
-    if (psi_dir_fd < 0) {
+    /* Tests should pass even with CONFIG_PSI=n */
+    if (psi_dir_fd < 0 && !override_config) {
         warn("%s\n", "No pressure dir found. "
                      "Are you using kernel >=4.20 with CONFIG_PSI=y?");
         return psi_dir_fd;
     }
     cfg.psi_dir_fd = psi_dir_fd;
 
-    cfg.cpu.filename = get_psi_filename("cpu");
+    cfg.cpu.filename = get_psi_filename("cpu", !!override_config);
     cfg.cpu.type = RT_CPU;
     cfg.cpu.human_name = "CPU";
     cfg.cpu.has_full = 0;
 
-    cfg.memory.filename = get_psi_filename("memory");
+    cfg.memory.filename = get_psi_filename("memory", !!override_config);
     cfg.memory.type = RT_MEMORY;
     cfg.memory.human_name = "memory";
     cfg.memory.has_full = 1;
 
-    cfg.io.filename = get_psi_filename("io");
+    cfg.io.filename = get_psi_filename("io", !!override_config);
     cfg.io.type = RT_IO;
     cfg.io.human_name = "I/O";
     cfg.io.has_full = 1;
