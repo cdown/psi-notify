@@ -66,7 +66,7 @@ install: all
 	$(INSTALL) -pt $(DESTDIR)$(bindir)/ $(EXECUTABLES)
 	$(INSTALL) -Dp -m 644 psi-notify.service $(DESTDIR)$(prefix)/lib/systemd/user/psi-notify.service
 
-test: CFLAGS+=-D_FORTIFY_SOURCE=2
+test: CFLAGS+=-D_FORTIFY_SOURCE=2 -fsanitize=address -fsanitize=undefined -Og -ggdb -fno-omit-frame-pointer
 test:
 	$(CC) $(CFLAGS) test/test.c -o test/test $(LIBS) $(LDFLAGS)
 	test/test
