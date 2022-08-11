@@ -823,12 +823,6 @@ int main(int argc, char *argv[]) {
     print_config();
     info("%s\n", "Pressure monitoring started.");
 
-    /*
-     * TODO: If discussion on unprivileged PSI poll() support upstream ends up
-     * with patches, change this to use poll() and a real event loop.
-     *
-     * https://lore.kernel.org/lkml/20200424153859.GA1481119@chrisdown.name/
-     */
     while (run) {
         size_t i;
         struct timespec in;
