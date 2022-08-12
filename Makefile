@@ -1,4 +1,5 @@
 CFLAGS:=-std=gnu11 -O2 -pedantic -Wall -Wextra -Werror $(shell pkg-config --cflags libnotify) $(CFLAGS)
+CPPFLAGS:=$(CPPFLAGS)
 LDFLAGS:=$(shell pkg-config --libs libnotify) $(LDFLAGS)
 
 INSTALL:=install
@@ -29,10 +30,10 @@ EXECUTABLES=$(patsubst %.c,%,$(SOURCES))
 all: $(EXECUTABLES)
 
 %: %.c
-	$(CC) $(CFLAGS) $< -o $@ $(LIBS) $(LDFLAGS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ $(LIBS) $(LDFLAGS)
 
 %.o: %.c
-	$(CC) $(CFLAGS) $< -c -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< -c -o $@
 
 %: %.o
 	$(CC) $< -o $@ $(LIBS) $(LDFLAGS)
@@ -72,7 +73,7 @@ install: all
 
 test: CFLAGS+=-D_FORTIFY_SOURCE=2 -fsanitize=address -fsanitize=undefined -Og -ggdb -fno-omit-frame-pointer
 test:
-	$(CC) $(CFLAGS) test/test.c -o test/test $(LIBS) $(LDFLAGS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) test/test.c -o test/test $(LIBS) $(LDFLAGS)
 	test/test
 
 clean:
