@@ -1,0 +1,64 @@
+.TH PSI-NOTIFY 1
+
+.SH NAME
+psi-notify - notify on system-wide resource pressure using PSI
+
+.SH DESCRIPTION
+.B psi-notify
+is a minimal unprivileged notifier for system-wide resource pressure using PSI.
+This can help you to identify misbehaving applications on your machine before
+they start to severely impact system responsiveness, in a way which
+.IR MemAvailable ,
+CPU graphs, I/O utilisation graphs and other metrics cannot.
+
+.SH OPTIONS
+.B psi-notify
+does not take any options. If any are provided, a help message will be printed
+and
+.B psi-notify
+will exit.
+
+.SH CONFIGURATION
+You can optionally put configuration in
+.IR ~/.config/psi-notify .
+Here's an example that will check roughly every 5 seconds, and pop up a
+notification when the configured values are exceeded:
+
+.RS
+.EX
+update 5
+log_pressures false
+
+threshold cpu some avg10 50.00
+threshold memory some avg10 10.00
+threshold io full avg10 15.00
+.EE
+.RE
+
+These are the default settings if no configuration is provided.
+
+For more information about how these values are calculated, please see the PSI
+documentation at
+.UR https://facebookmicrosites.github.io/psi/
+.UE .
+
+.SH DEPENDENCIES
+.B psi-notify
+requires Linux kernel 4.20+ and
+.BR CONFIG_PSI=y .
+You will also need a notification daemon that conforms to the Desktop
+Notifications specification to receive the notifications.
+
+.SH SEE ALSO
+.BR cgroups (8),
+.BR proc (5)
+
+.SH AUTHOR
+Chris Down
+.MT chris@chrisdown.name
+.ME
+
+.SH REPORTING BUGS
+Please send bug reports to
+.UR https://github.com/cdown/psi-notify/issues
+.UE .

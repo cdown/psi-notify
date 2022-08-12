@@ -4,6 +4,9 @@ LDFLAGS:=$(shell pkg-config --libs libnotify) $(LDFLAGS)
 INSTALL:=install
 prefix:=/usr/local
 bindir:=$(prefix)/bin
+datarootdir:=$(prefix)/share
+mandir:=$(datarootdir)/man
+
 
 WANT_SD_NOTIFY=1
 HAS_LIBSYSTEMD=$(shell pkg-config libsystemd && echo 1 || echo 0)
@@ -65,6 +68,7 @@ install: all
 	mkdir -p $(DESTDIR)$(bindir)/
 	$(INSTALL) -pt $(DESTDIR)$(bindir)/ $(EXECUTABLES)
 	$(INSTALL) -Dp -m 644 psi-notify.service $(DESTDIR)$(prefix)/lib/systemd/user/psi-notify.service
+	$(INSTALL) -Dp -m 644 psi-notify.1 $(DESTDIR)$(mandir)/man1/psi-notify.1
 
 test: CFLAGS+=-D_FORTIFY_SOURCE=2 -fsanitize=address -fsanitize=undefined -Og -ggdb -fno-omit-frame-pointer
 test:
