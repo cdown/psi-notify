@@ -793,8 +793,13 @@ static void unblock_all_signals(void) {
 int main(int argc, char *argv[]) {
     unsigned long num_iters = 0;
 
+    (void)argv;
+
     if (argc != 1) {
-        die("%s doesn't accept any arguments.\n", argv[0]);
+        printf("psi-notify: Alert on system-wide resource pressure.\n\n");
+        printf("  [any argument]     Show this help\n\n");
+        printf("See the psi-notify(1) man page for details.\n");
+        return 0;
     }
 
     if (check_fuzzers()) {
