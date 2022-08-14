@@ -1,3 +1,8 @@
+[Unit]
+Description=notify on system-wide resource pressure using PSI
+Documentation=man:psi-notify(1)
+PartOf=graphical-session.target
+
 [Service]
 ExecStart=psi-notify
 ExecReload=kill -HUP $MAINPID
@@ -5,8 +10,7 @@ Type=notify
 
 Restart=always
 
+Slice=background.slice
+
 # Will be updated by watchdog_update_usec() once we parsed the config
 WatchdogSec=2s
-
-[Install]
-WantedBy=default.target
