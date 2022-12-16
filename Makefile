@@ -1,4 +1,4 @@
-CFLAGS:=-std=gnu11 -O2 -pedantic -Wall -Wextra -Werror $(shell pkg-config --cflags libnotify) $(CFLAGS)
+CFLAGS:=-std=gnu11 -O2 -pedantic -Wall -Wextra -Wwrite-strings -Warray-bounds -Wconversion -Wstrict-prototypes -Werror $(shell pkg-config --cflags libnotify) $(CFLAGS)
 CPPFLAGS:=$(CPPFLAGS)
 LDFLAGS:=$(shell pkg-config --libs libnotify) $(LDFLAGS)
 
@@ -44,7 +44,7 @@ clang-everything: CC=clang
 clang-everything: CFLAGS+=-Weverything -Wno-disabled-macro-expansion -Wno-padded -Wno-unused-macros -Wno-covered-switch-default
 clang-everything: all
 
-sanitisers: CFLAGS+=-fsanitize=address -fsanitize=undefined
+sanitisers: CFLAGS+=-fsanitize=address -fsanitize=undefined -fanalyzer
 sanitisers: debug
 
 debug: CFLAGS+=-Og -ggdb -fno-omit-frame-pointer
