@@ -98,7 +98,7 @@ static NotifyNotification *alert_user(const char *resource) {
 
 static void alert_destroy_all_active(void) {
     size_t i;
-    for_each_arr (i, active_notif) {
+    for_each_arr(i, active_notif) {
         if (active_notif[i].notif) {
             NotifyNotification *n = active_notif[i].notif;
             active_notif[i].notif = NULL;
@@ -764,7 +764,7 @@ static void print_config(void) {
     printf("      Update interval: %llds\n\n", (long long)cfg.update_interval);
 
     printf("      Thresholds:\n");
-    for_each_arr (i, all_res) {
+    for_each_arr(i, all_res) {
         const Resource *r = all_res[i];
         print_single_thresh(r, avg10, some);
         print_single_thresh(r, avg10, full);
@@ -837,7 +837,9 @@ int main(int argc, char *argv[]) {
         sd_notify(0, "READY=1\nWATCHDOG=1\n"
                      "STATUS=Checking current pressures...");
 
-        for_each_arr (i, all_res) { pressure_check_notify_if_new(all_res[i]); }
+        for_each_arr(i, all_res) {
+            pressure_check_notify_if_new(all_res[i]);
+        }
 
         unblock_all_signals();
 

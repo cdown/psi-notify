@@ -7,9 +7,7 @@ PenaltyBreakComment: 0
 PenaltyReturnTypeOnItsOwnLine: 999
 SortIncludes: true
 UseTab: Never
-
-# When https://reviews.llvm.org/D78869 appears...
-# SpaceBeforeParens: ControlStatementsExceptForEachMacros
+SpaceBeforeParens: ControlStatementsExceptForEachMacros
 
 ForEachMacros:
     - for_each_arr
