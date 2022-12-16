@@ -26,7 +26,7 @@ typedef struct {
 
 typedef struct {
     char *filename;
-    char *human_name;
+    const char *human_name;
     unsigned int has_full;
     ResourceType type;
     Pressure thresholds;
@@ -106,6 +106,6 @@ static inline int parse_boolean(const char *s) {
     return -EINVAL;
 }
 
-static inline char *active_inactive(Alert *a) {
+static inline const char *active_inactive(Alert *a) {
     return a->notif ? "active" : "inactive";
 }

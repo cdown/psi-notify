@@ -126,7 +126,7 @@ static int get_psi_dir_fd(void) {
     return -EINVAL;
 }
 
-static char *get_psi_filename(char *resource, bool in_test) {
+static char *get_psi_filename(const char *resource, bool in_test) {
     char *path;
 
     /* In a test environment we will read from an fmemopen()ed string */
@@ -262,7 +262,7 @@ static void watchdog_update_usec(void) {
 }
 
 static void config_get_path(char *out) {
-    char *base_dir = getenv("XDG_CONFIG_DIR");
+    const char *base_dir = getenv("XDG_CONFIG_DIR");
     const struct passwd *pw = getpwuid(getuid());
 
     if (base_dir) {
@@ -752,7 +752,7 @@ static int check_fuzzers(void) {
 
 static void print_config(void) {
     size_t i;
-    char *header = "Config";
+    const char *header = "Config";
 
     if (config_reload_pending) {
         header = "Config reloaded. New config after reload";
