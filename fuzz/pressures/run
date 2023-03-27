@@ -3,7 +3,7 @@
 export UBSAN_OPTIONS=halt_on_error=1:abort_on_error=1
 export AFL_NO_UI=1
 
-prefix=psi-notify-pressures-fuzz
+prefix=pres-fuzz
 
 for (( i = 0; i < $(nproc); i++ )); do
     afl_type=-S

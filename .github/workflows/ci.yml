@@ -1,0 +1,43 @@
+env:
+  AFL_NO_UI: 1
+
+jobs:
+  build_and_test:
+    name: CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+      - run: sudo apt-get update
+
+      - uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: gcc-10 libnotify-dev libsystemd-dev afl clang clang-tidy
+          version: 1.0
+
+      - run: gcc --version
+
+      - run: make test
+      - run: make clean clang-tidy
+      - run: make clean clang-everything
+      - run: make clean test WANT_SD_NOTIFY=0
+      - run: make clean clang-tidy WANT_SD_NOTIFY=0
+      - run: make clean clang-everything WANT_SD_NOTIFY=0
+
+      # Need to work out why this exits prematurely on actions
+      #- run: sudo sh -c 'echo core > /proc/sys/kernel/core_pattern'
+
+      #- run: make clean afl
+
+      #- run: 'timeout -s INT --preserve-status 2m make fuzz-configs; [[ $? == 130 ]]'
+      #- run: 'if (( "$(find fuzz/configs/results/*/crashes -type f | wc -l)" != 0 )); then grep . fuzz/configs/results/*/crashes/*; exit 1; fi'
+
+      #- run: 'timeout -s INT --preserve-status 2m make fuzz-pressures; [[ $? == 130 ]]'
+      #- run: 'if (( "$(find fuzz/pressures/results/*/crashes -type f | wc -l)" != 0 )); then grep . fuzz/pressures/results/*/crashes/*; exit 1; fi'
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
