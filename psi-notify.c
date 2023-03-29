@@ -617,37 +617,34 @@ static int alert_user_if_new(const Resource *r) {
 }
 
 /* 0 means already stabilising, 1 means newly stabilising. */
-static int alert_stabilising(const Resource *r) {
+static void alert_stabilising(const Resource *r) {
     if (active_notif[r->type].last_state == A_STABILISING) {
-        return 0;
+        return;
     }
 
     if (active_notif[r->type].last_state == A_ACTIVE) {
         LOG_ALERT_STATE(r, "stabilising");
     }
-
-    return 1;
 }
 
-/* 0 means already inactive, 1 means newly inactive, 2 means stabilising. */
-static int alert_stop(const Resource *r) {
+static AlertState alert_stop(const Resource *r) {
     NotifyNotification *n = active_notif[r->type].notif;
 
     if (active_notif[r->type].last_state == A_INACTIVE) {
-        return 0;
+        return A_INACTIVE;
     }
 
     if (--active_notif[r->type].remaining_intervals) {
         /* Still got some more iterations to go before this can be closed. */
         alert_stabilising(r);
-        return 2;
+        return A_STABILISING;
     }
 
     LOG_ALERT_STATE(r, "inactive");
     active_notif[r->type].notif = NULL;
     alert_destroy(n);
 
-    return 1;
+    return A_INACTIVE;
 }
 
 static void pressure_check_notify_if_new(const Resource *r) {
@@ -656,7 +653,7 @@ static void pressure_check_notify_if_new(const Resource *r) {
 
     switch (ret) {
         case A_INACTIVE:
-            time_stabilising = alert_stop(r) == 2;
+            time_stabilising = alert_stop(r) == A_STABILISING;
             break;
         case A_ACTIVE:
             alert_user_if_new(r);
