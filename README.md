@@ -1,4 +1,4 @@
-# psi-notify | [![Tests](https://img.shields.io/travis/com/cdown/psi-notify/master.svg)](https://travis-ci.com/cdown/psi-notify) [![Fuzzer](https://img.shields.io/travis/com/cdown/psi-notify/master.svg?label=fuzz)](https://travis-ci.com/cdown/psi-notify)
+# psi-notify | [![Tests](https://img.shields.io/github/actions/workflow/status/cdown/psi-notify/ci.yml?branch=master)](https://github.com/cdown/psi-notify/actions?query=branch%3Amaster) [![CodeQL](https://img.shields.io/github/actions/workflow/status/cdown/psi-notify/codeql.yml?branch=master&label=codeql)](https://github.com/cdown/psi-notify/actions?query=branch%3Amaster)
 
 **tl;dr: psi-notify can alert you when resources on your machine are becoming
 oversaturated, and allow you to take action *before* your system slows to a
