@@ -680,6 +680,7 @@ static void pressure_check_notify_if_new(const Resource *r) {
 
 static void suspend_for_remaining_interval(const struct timespec *in) {
     struct timespec out, remaining;
+    long cfg_nsec, rem_nsec, sleep_nsec;
 
     if (cfg.update_interval == 0) {
         return;
@@ -695,19 +696,18 @@ static void suspend_for_remaining_interval(const struct timespec *in) {
         remaining.tv_nsec = out.tv_nsec - in->tv_nsec;
     }
 
-    remaining.tv_sec = (cfg.update_interval - remaining.tv_sec - 1);
-    remaining.tv_nsec = (SEC_TO_NSEC - remaining.tv_nsec);
+    cfg_nsec = cfg.update_interval * SEC_TO_NSEC;
+    rem_nsec = remaining.tv_sec * SEC_TO_NSEC + remaining.tv_nsec;
 
-    if (remaining.tv_nsec == SEC_TO_NSEC) {
-        remaining.tv_sec += 1;
-        remaining.tv_nsec = 0;
-    }
-
-    if (remaining.tv_sec >= cfg.update_interval) {
+    if (rem_nsec >= cfg_nsec) {
         warn("Timer elapsed %lld seconds before we completed one event loop.\n",
              (long long)cfg.update_interval);
         return;
     }
+
+    sleep_nsec = cfg_nsec - rem_nsec;
+    remaining.tv_sec = sleep_nsec / SEC_TO_NSEC;
+    remaining.tv_nsec = sleep_nsec % SEC_TO_NSEC;
 
     expect(nanosleep(&remaining, NULL) == 0 || errno == EINTR);
 }
