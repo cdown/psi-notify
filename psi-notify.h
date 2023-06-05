@@ -91,13 +91,13 @@ static inline int parse_boolean(const char *s) {
     const char *const truthy[] = {"1", "y", "yes", "true", "on"};
     const char *const falsy[] = {"0", "n", "no", "false", "off"};
 
-    for_each_arr (i, truthy) {
+    for_each_arr(i, truthy) {
         if (strceq(s, truthy[i])) {
             return 1;
         }
     }
 
-    for_each_arr (i, falsy) {
+    for_each_arr(i, falsy) {
         if (strceq(s, falsy[i])) {
             return 0;
         }

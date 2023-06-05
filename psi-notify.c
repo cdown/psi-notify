@@ -113,8 +113,10 @@ static int get_psi_dir_fd(void) {
     int dir_fd;
     char dir_path[PATH_MAX];
 
-    snprintf_check(dir_path, PATH_MAX,
-                   "/sys/fs/cgroup/user.slice/user-%d.slice", getuid());
+    snprintf_check(dir_path,
+                   PATH_MAX,
+                   "/sys/fs/cgroup/user.slice/user-%d.slice",
+                   getuid());
 
     if ((dir_fd = open(dir_path, O_RDONLY)) > 0) {
         using_seat = true;
@@ -154,15 +156,19 @@ static void config_update_threshold(const char *line) {
     TimeResourcePressure *t;
 
     /* line is clamped to CONFIG_LINE_MAX, so formats cannot be wider */
-    if (sscanf(line, "%*s %s %s %s %lf", resource, type, interval,
-               &threshold) != 4) {
+    if (sscanf(
+            line, "%*s %s %s %s %lf", resource, type, interval, &threshold) !=
+        4) {
         warn("Invalid threshold, ignoring: %s", line);
         return;
     }
 
     if (threshold < 0) {
-        warn("Invalid threshold for %s::%s::%s, ignoring: %f\n", resource, type,
-             interval, threshold);
+        warn("Invalid threshold for %s::%s::%s, ignoring: %f\n",
+             resource,
+             type,
+             interval,
+             threshold);
         return;
     }
 
@@ -256,7 +262,8 @@ static void config_reset_user_facing(void) {
 #define WATCHDOG_GRACE_PERIOD_SEC 5
 #define SEC_TO_USEC 1000000
 static void watchdog_update_usec(void) {
-    sd_notifyf(0, "WATCHDOG_USEC=%lld",
+    sd_notifyf(0,
+               "WATCHDOG_USEC=%lld",
                ((long long)cfg.update_interval + WATCHDOG_GRACE_PERIOD_SEC) *
                    SEC_TO_USEC);
 }
@@ -304,7 +311,8 @@ static int config_update_from_file(FILE **override_config) {
         if (config_reload_pending) {
             /* This was from a SIGHUP, so we already have a config. Keep it. */
             warn("Config reload request ignored, cannot open %s: %s\n",
-                 config_path, strerror(errno));
+                 config_path,
+                 strerror(errno));
             return ret;
         }
 
@@ -312,7 +320,8 @@ static int config_update_from_file(FILE **override_config) {
             if (errno == ENOENT) {
                 info("No config at %s, using defaults.\n", config_path);
             } else {
-                warn("Using default config, cannot open %s: %s\n", config_path,
+                warn("Using default config, cannot open %s: %s\n",
+                     config_path,
                      strerror(errno));
             }
         }
@@ -377,8 +386,9 @@ static int config_init(FILE **override_config) {
     psi_dir_fd = get_psi_dir_fd();
     /* Tests should pass even with CONFIG_PSI=n */
     if (psi_dir_fd < 0 && !override_config) {
-        warn("%s\n", "No pressure dir found. "
-                     "Are you using kernel >=4.20 with CONFIG_PSI=y?");
+        warn("%s\n",
+             "No pressure dir found. "
+             "Are you using kernel >=4.20 with CONFIG_PSI=y?");
         return psi_dir_fd;
     }
     cfg.psi_dir_fd = psi_dir_fd;
@@ -460,14 +470,21 @@ static AlertState pressure_check_single_line(FILE *f, const Resource *r) {
     if (fscanf(f,
                PRESSURE_LINE_LEN_STR
                " avg10=%lf avg60=%lf avg300=%lf total=%*s",
-               type, &avg10, &avg60, &avg300) != 4) {
+               type,
+               &avg10,
+               &avg60,
+               &avg300) != 4) {
         warn("Can't parse pressures from %s\n", strnull(r->filename));
         return A_ERROR;
     }
 
     if (cfg.log_pressures) {
         info("Current %s pressures: %s avg10=%.2f avg60=%.2f avg300=%.2f\n",
-             strnull(r->human_name), type, avg10, avg60, avg300);
+             strnull(r->human_name),
+             type,
+             avg10,
+             avg60,
+             avg300);
     }
 
     if (streq(type, "some")) {
@@ -588,7 +605,9 @@ static AlertState pressure_check(const Resource *r, FILE *override_file) {
 #define LOG_ALERT_STATE(r, state)                                              \
     do {                                                                       \
         expect(*r->human_name);                                                \
-        info("%c%s alert: %s\n", toupper(r->human_name[0]), r->human_name + 1, \
+        info("%c%s alert: %s\n",                                               \
+             toupper(r->human_name[0]),                                        \
+             r->human_name + 1,                                                \
              state);                                                           \
     } while (0)
 
@@ -744,8 +763,12 @@ static int check_fuzzers(void) {
 #define print_single_thresh(res, time, type)                                   \
     expect(*res->human_name);                                                  \
     if (res->thresholds.time.type >= 0)                                        \
-    printf("        - %c%s %s %s: %.2f\n", toupper(res->human_name[0]),        \
-           res->human_name + 1, #time, #type, res->thresholds.time.type)
+    printf("        - %c%s %s %s: %.2f\n",                                     \
+           toupper(res->human_name[0]),                                        \
+           res->human_name + 1,                                                \
+           #time,                                                              \
+           #type,                                                              \
+           res->thresholds.time.type)
 
 static void print_config(void) {
     size_t i;
@@ -831,12 +854,11 @@ int main(int argc, char *argv[]) {
 
         expect(clock_gettime(CLOCK_MONOTONIC, &in) == 0);
 
-        sd_notify(0, "READY=1\nWATCHDOG=1\n"
-                     "STATUS=Checking current pressures...");
+        sd_notify(0,
+                  "READY=1\nWATCHDOG=1\n"
+                  "STATUS=Checking current pressures...");
 
-        for_each_arr(i, all_res) {
-            pressure_check_notify_if_new(all_res[i]);
-        }
+        for_each_arr(i, all_res) { pressure_check_notify_if_new(all_res[i]); }
 
         unblock_all_signals();
 
