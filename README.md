@@ -139,5 +139,3 @@ Thresholds are specified with fields in the following format:
 
 Issues and pull requests are welcome! Please feel free to file them [on
 GitHub](https://github.com/cdown/psi-notify).
-
-[sd_notify]: https://www.freedesktop.org/software/systemd/man/sd_notify.html
