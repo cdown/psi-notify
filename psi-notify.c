@@ -8,19 +8,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/un.h>
 #include <unistd.h>
 
 #include "psi-notify.h"
-
-#ifdef WANT_SD_NOTIFY
-    #include <systemd/sd-daemon.h>
-#else /* !WANT_SD_NOTIFY */
-    #define sd_notifyf(reset_env, fmt, ...)                                    \
-        do {                                                                   \
-        } while (0)
-    #define sd_notify(reset_env, state) sd_notifyf(reset_env, "%s", state)
-#endif /* WANT_SD_NOTIFY */
 
 static volatile sig_atomic_t config_reload_pending = 0; /* SIGHUP */
 static volatile sig_atomic_t run = 1;                   /* SIGTERM, SIGINT */
@@ -39,6 +32,23 @@ static Alert active_notif[] = {
     [RT_MEMORY] = DEFAULT_ALERT_STATE,
     [RT_IO] = DEFAULT_ALERT_STATE,
 };
+
+#define NOTIFY_MAX 256
+static int sd_notify(const char *message) {
+    const char *notify_path = getenv("NOTIFY_SOCKET");
+    struct sockaddr_un addr = {.sun_family = AF_UNIX};
+    int fd;
+    if (!notify_path) {
+        return 0;
+    }
+    fd = socket(AF_UNIX, SOCK_DGRAM, 0);
+    expect(fd >= 0);
+    snprintf_check(addr.sun_path, sizeof(addr.sun_path), "%s", notify_path);
+    expect(connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == 0);
+    expect(write(fd, message, strlen(message)) == (ssize_t)strlen(message));
+    close(fd);
+    return 0;
+}
 
 static void request_reload_config(int sig) {
     (void)sig;
@@ -262,10 +272,14 @@ static void config_reset_user_facing(void) {
 #define WATCHDOG_GRACE_PERIOD_SEC 5
 #define SEC_TO_USEC 1000000
 static void watchdog_update_usec(void) {
-    sd_notifyf(0,
-               "WATCHDOG_USEC=%lld",
-               ((long long)cfg.update_interval + WATCHDOG_GRACE_PERIOD_SEC) *
-                   SEC_TO_USEC);
+    char message[NOTIFY_MAX];
+    snprintf_check(
+        message,
+        sizeof(message),
+        "WATCHDOG_USEC=%lld",
+        ((long long)cfg.update_interval + WATCHDOG_GRACE_PERIOD_SEC) *
+            SEC_TO_USEC);
+    sd_notify(message);
 }
 
 static void config_get_path(char *out) {
@@ -854,8 +868,7 @@ int main(int argc, char *argv[]) {
 
         expect(clock_gettime(CLOCK_MONOTONIC, &in) == 0);
 
-        sd_notify(0,
-                  "READY=1\nWATCHDOG=1\n"
+        sd_notify("READY=1\nWATCHDOG=1\n"
                   "STATUS=Checking current pressures...");
 
         for_each_arr(i, all_res) { pressure_check_notify_if_new(all_res[i]); }
@@ -863,18 +876,21 @@ int main(int argc, char *argv[]) {
         unblock_all_signals();
 
         if (config_reload_pending) {
-            sd_notify(0, "RELOADING=1\nSTATUS=Reloading config...");
+            sd_notify("RELOADING=1\nSTATUS=Reloading config...");
             if (config_update_from_file(NULL) == 0) {
                 print_config();
             }
             config_reload_pending = 0;
         } else if (run) {
-            sd_notifyf(
-                0,
+            char message[NOTIFY_MAX];
+            snprintf_check(
+                message,
+                sizeof(message),
                 "STATUS=Waiting. Current alerts: CPU: %s, memory: %s, I/O: %s",
                 active_inactive(&active_notif[RT_CPU]),
                 active_inactive(&active_notif[RT_MEMORY]),
                 active_inactive(&active_notif[RT_IO]));
+            sd_notify(message);
 
             suspend_for_remaining_interval(&in);
         }
@@ -887,7 +903,7 @@ int main(int argc, char *argv[]) {
     unblock_all_signals();
 
     info("Terminating after %lu intervals elapsed.\n", num_iters);
-    sd_notify(0, "STOPPING=1\nSTATUS=Tearing down...");
+    sd_notify("STOPPING=1\nSTATUS=Tearing down...");
 
     free(cfg.cpu.filename);
     free(cfg.memory.filename);
