@@ -16,8 +16,8 @@ EXECUTABLES=$(patsubst %.c,%,$(SOURCES))
 
 all: $(EXECUTABLES)
 
-%: %.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ $(LIBS) $(LDFLAGS)
+%: %.c %.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(filter %.c,$<) -o $@ $(LIBS) $(LDFLAGS)
 
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< -c -o $@
