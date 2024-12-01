@@ -284,13 +284,14 @@ static void watchdog_update_usec(void) {
 
 static void config_get_path(char *out) {
     const char *base_dir = getenv("XDG_CONFIG_DIR");
-    const struct passwd *pw = getpwuid(getuid());
+    const struct passwd *pw = NULL;
 
     if (base_dir) {
         snprintf_check(out, PATH_MAX, "%s/psi-notify", base_dir);
     } else {
         base_dir = getenv("HOME");
         if (!base_dir) {
+            pw = getpwuid(getuid());
             if (pw) {
                 base_dir = pw->pw_dir;
             } else {
