@@ -34,12 +34,12 @@ static Alert active_notif[] = {
 };
 
 #define NOTIFY_MAX 256
-static int sd_notify(const char *message) {
+static void sd_notify(const char *message) {
     const char *notify_path = getenv("NOTIFY_SOCKET");
     struct sockaddr_un addr = {.sun_family = AF_UNIX};
     int fd;
     if (!notify_path) {
-        return 0;
+        return;
     }
     fd = socket(AF_UNIX, SOCK_DGRAM, 0);
     expect(fd >= 0);
@@ -47,7 +47,6 @@ static int sd_notify(const char *message) {
     expect(connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == 0);
     expect(write(fd, message, strlen(message)) == (ssize_t)strlen(message));
     close(fd);
-    return 0;
 }
 
 static void request_reload_config(int sig) {
