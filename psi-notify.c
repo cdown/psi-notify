@@ -27,8 +27,7 @@ static bool using_seat = false;
 static const time_t expiry_sec = 10;
 static const double alert_clear_hysteresis = 5.0;
 
-#define DEFAULT_ALERT_STATE                                                    \
-    { NULL, 0, A_INACTIVE }
+#define DEFAULT_ALERT_STATE {NULL, 0, A_INACTIVE}
 static Alert active_notif[] = {
     [RT_CPU] = DEFAULT_ALERT_STATE,
     [RT_MEMORY] = DEFAULT_ALERT_STATE,
