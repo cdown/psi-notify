@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <strings.h>
 #include <time.h>
@@ -39,7 +40,7 @@ typedef struct {
     time_t update_interval;
     bool log_pressures;
     int psi_dir_fd;
-    int io_min_blocked_tasks;
+    int32_t io_min_blocked_tasks;
 } Config;
 
 typedef struct {

@@ -1,11 +1,13 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <libnotify/notify.h>
 #include <linux/limits.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -218,21 +220,23 @@ static void config_update_threshold(const char *line) {
 }
 
 static void config_update_interval(const char *line) {
-    int rvalue;
 
-    if (sscanf(line, "%*s %d", &rvalue) != 1) {
+    int32_t rvalue;
+
+    if (sscanf(line, "%*s %" SCNd32, &rvalue) != 1) {
         warn("Invalid config line, ignoring: %s", line);
         return;
     }
 
     if (rvalue < 0) {
-        warn("Ignoring <0 update interval: %d\n", rvalue);
+        warn("Ignoring <0 update interval: %" PRId32 "\n", rvalue);
+
         return;
     }
 
     if (rvalue > 1800) {
         /* WATCHDOG_USEC must still fit in a uint */
-        warn("Clamping update interval to 1800 from %d.\n", rvalue);
+        warn("Clamping update interval to 1800 from %" PRId32 ".\n", rvalue);
         rvalue = 1800;
     }
 
@@ -272,12 +276,11 @@ static void config_reset_user_facing(void) {
 #define SEC_TO_USEC 1000000
 static void watchdog_update_usec(void) {
     char message[NOTIFY_MAX];
-    snprintf_check(
-        message,
-        sizeof(message),
-        "WATCHDOG_USEC=%lld",
-        ((long long)cfg.update_interval + WATCHDOG_GRACE_PERIOD_SEC) *
-            SEC_TO_USEC);
+    snprintf_check(message,
+                   sizeof(message),
+                   "WATCHDOG_USEC=%" PRIdMAX,
+                   ((intmax_t)cfg.update_interval + WATCHDOG_GRACE_PERIOD_SEC) *
+                       SEC_TO_USEC);
     sd_notify(message);
 }
 
@@ -430,18 +433,20 @@ static int config_init(FILE **override_config) {
     return 0;
 }
 
-static int get_nr_blocked_tasks(void) {
+static int32_t get_nr_blocked_tasks(void) {
     /*
      * If in future system wide metrics prove not granular enough for purpose,
      * iterate cgroup.threads recursively inside the seat cgroup.
      */
     FILE *f = fopen("/proc/stat", "re");
-    int procs_blocked, ch;
+    int32_t procs_blocked, ch;
 
     expect(f);
 
     while (!feof(f)) {
-        if (fscanf(f, "procs_blocked %d", &procs_blocked) == 1) {
+
+        if (fscanf(f, "procs_blocked %" SCNd32, &procs_blocked) == 1) {
+
             fclose(f);
             return procs_blocked;
         } else {
@@ -518,7 +523,7 @@ static AlertState pressure_check_single_line(FILE *f, const Resource *r) {
     } else if (streq(type, "full")) {
         if (r->type == RT_IO &&
             active_notif[r->type].last_state == A_INACTIVE) {
-            int ret;
+            int32_t ret;
 
             /*
              * On a desktop system there's usually very few runnable tasks,
@@ -902,7 +907,7 @@ int main(int argc, char *argv[]) {
 
     unblock_all_signals();
 
-    info("Terminating after %lu intervals elapsed.\n", num_iters);
+    info("Terminating after %" PRIu64 " intervals elapsed.\n", num_iters);
     sd_notify("STOPPING=1\nSTATUS=Tearing down...");
 
     free(cfg.cpu.filename);
