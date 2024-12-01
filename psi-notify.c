@@ -398,7 +398,7 @@ static int config_init(FILE **override_config) {
     expect(!already_ran);
     already_ran = true;
 
-    memset(&cfg, 0, sizeof(Config));
+    cfg = (Config){0};
 
     psi_dir_fd = get_psi_dir_fd();
     /* Tests should pass even with CONFIG_PSI=n */
@@ -760,7 +760,7 @@ static int check_fuzzers(void) {
         FILE *f = fopen(fuzz_pressure_file, "re");
 
         expect(f);
-        memset(&r, 0, sizeof(r));
+        r = (Resource){0};
         (void)pressure_check(&r, f);
         return 1;
     }
