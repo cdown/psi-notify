@@ -413,17 +413,17 @@ static int config_init(FILE **override_config) {
     cfg.cpu.filename = get_psi_filename("cpu", !!override_config);
     cfg.cpu.type = RT_CPU;
     cfg.cpu.human_name = "CPU";
-    cfg.cpu.has_full = 0;
+    cfg.cpu.has_full = false;
 
     cfg.memory.filename = get_psi_filename("memory", !!override_config);
     cfg.memory.type = RT_MEMORY;
     cfg.memory.human_name = "memory";
-    cfg.memory.has_full = 1;
+    cfg.memory.has_full = true;
 
     cfg.io.filename = get_psi_filename("io", !!override_config);
     cfg.io.type = RT_IO;
     cfg.io.human_name = "I/O";
-    cfg.io.has_full = 1;
+    cfg.io.has_full = true;
 
     /* Currently not user configurable, file an issue if you need it to be. */
     cfg.io_min_blocked_tasks = 2;

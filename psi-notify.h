@@ -28,7 +28,7 @@ typedef struct {
 typedef struct {
     char *filename;
     const char *human_name;
-    unsigned int has_full;
+    bool has_full;
     ResourceType type;
     Pressure thresholds;
 } Resource;
