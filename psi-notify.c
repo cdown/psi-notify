@@ -753,11 +753,10 @@ static int check_fuzzers(void) {
     const char *const fuzz_pressure_file = getenv("FUZZ_PRESSURES");
 
     if (fuzz_pressure_file) {
-        Resource r;
+        Resource r = {0};
         FILE *f = fopen(fuzz_pressure_file, "re");
 
         expect(f);
-        r = (Resource){0};
         (void)pressure_check(&r, f);
         return 1;
     }
