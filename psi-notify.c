@@ -128,10 +128,10 @@ static int get_psi_dir_fd(void) {
                    "/sys/fs/cgroup/user.slice/user-%d.slice",
                    getuid());
 
-    if ((dir_fd = open(dir_path, O_RDONLY)) > 0) {
+    if ((dir_fd = open(dir_path, O_RDONLY)) >= 0) {
         using_seat = true;
         return dir_fd;
-    } else if ((dir_fd = open("/proc/pressure", O_RDONLY)) > 0) {
+    } else if ((dir_fd = open("/proc/pressure", O_RDONLY)) >= 0) {
         return dir_fd;
     }
 
@@ -142,7 +142,7 @@ static char *get_psi_filename(const char *resource, bool in_test) {
     char *path;
 
     /* In a test environment we will read from an fmemopen()ed string */
-    expect(cfg.psi_dir_fd > 0 || in_test);
+    expect(cfg.psi_dir_fd >= 0 || in_test);
 
     path = malloc(PRESSURE_FILE_PATH_MAX);
     expect(path);
@@ -559,10 +559,8 @@ static AlertState pressure_check_single_line(FILE *f, const Resource *r) {
 }
 
 static int openat_psi(const char *fn) {
-    int fd;
-
-    fd = openat(cfg.psi_dir_fd, fn, O_RDONLY | O_CLOEXEC);
-    if (fd > 0) {
+    int fd = openat(cfg.psi_dir_fd, fn, O_RDONLY | O_CLOEXEC);
+    if (fd >= 0) {
         return fd;
     }
 
@@ -577,7 +575,7 @@ static int openat_psi(const char *fn) {
     }
 
     fd = openat(cfg.psi_dir_fd, fn, O_RDONLY | O_CLOEXEC);
-    if (fd > 0) {
+    if (fd >= 0) {
         return fd;
     }
 
