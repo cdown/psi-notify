@@ -219,9 +219,7 @@ static void config_update_threshold(const char *line) {
 }
 
 static void config_update_interval(const char *line) {
-
     int32_t rvalue;
-
     if (sscanf(line, "%*s %" SCNd32, &rvalue) != 1) {
         warn("Invalid config line, ignoring: %s", line);
         return;
@@ -229,7 +227,6 @@ static void config_update_interval(const char *line) {
 
     if (rvalue < 0) {
         warn("Ignoring <0 update interval: %" PRId32 "\n", rvalue);
-
         return;
     }
 
@@ -443,14 +440,11 @@ static int32_t get_nr_blocked_tasks(void) {
     expect(f);
 
     while (!feof(f)) {
-
         if (fscanf(f, "procs_blocked %" SCNd32, &procs_blocked) == 1) {
-
             fclose(f);
             return procs_blocked;
         } else {
-            while ((ch = fgetc(f)) != EOF && ch != '\n')
-                ;
+            while ((ch = fgetc(f)) != EOF && ch != '\n');
         }
     }
 
