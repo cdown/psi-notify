@@ -78,6 +78,9 @@ static void configure_signal_handlers(void) {
 }
 
 static void alert_destroy(NotifyNotification *n) {
+    if (!n) {
+        return;
+    }
     (void)notify_notification_close(n, NULL);
     g_object_unref(G_OBJECT(n));
 }
