@@ -23,3 +23,14 @@ threshold io full avg300 10.00
 threshold cpu some avg10 5.00
 threshold memory some avg10 1.00
 threshold io some avg10 1.00
+
+urgency normal
+urgency low
+urgency critical
+urgency bogus
+urgency
+timeout 10
+timeout never
+timeout 0
+timeout bogus
+timeout

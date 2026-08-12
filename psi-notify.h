@@ -39,6 +39,8 @@ typedef struct {
     Resource io;
     time_t update_interval;
     bool log_pressures;
+    NotifyUrgency urgency;
+    int32_t timeout_msec;
     int psi_dir_fd;
     int32_t io_min_blocked_tasks;
 } Config;
@@ -105,6 +107,31 @@ static inline int parse_boolean(const char *s) {
     }
 
     return -EINVAL;
+}
+
+static inline int parse_urgency(const char *s) {
+    if (strceq(s, "low")) {
+        return NOTIFY_URGENCY_LOW;
+    } else if (strceq(s, "normal")) {
+        return NOTIFY_URGENCY_NORMAL;
+    } else if (strceq(s, "critical")) {
+        return NOTIFY_URGENCY_CRITICAL;
+    }
+
+    return -EINVAL;
+}
+
+static inline const char *urgency_name(NotifyUrgency u) {
+    switch (u) {
+        case NOTIFY_URGENCY_LOW:
+            return "low";
+        case NOTIFY_URGENCY_NORMAL:
+            return "normal";
+        case NOTIFY_URGENCY_CRITICAL:
+            return "critical";
+        default:
+            return "[unknown]";
+    }
 }
 
 static inline const char *active_inactive(Alert *a) {
