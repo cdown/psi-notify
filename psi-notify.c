@@ -97,7 +97,8 @@ static NotifyNotification *alert_user(const char *resource) {
     snprintf_check(title, TITLE_MAX, "High %s pressure!", resource);
     n = notify_notification_new(
         title, "Consider reducing demand on this resource.", NULL);
-    notify_notification_set_urgency(n, NOTIFY_URGENCY_CRITICAL);
+    notify_notification_set_urgency(n, cfg.urgency);
+    notify_notification_set_timeout(n, cfg.timeout_msec);
 
     if (!notify_notification_show(n, &err)) {
         warn("Cannot display notification: %s\n", err->message);
@@ -259,9 +260,77 @@ static void config_update_log_pressures(const char *line) {
     cfg.log_pressures = ret;
 }
 
+static void config_update_urgency(const char *line) {
+    char rvalue[CONFIG_LINE_MAX];
+    int urgency;
+
+    if (sscanf(line, "%*s %s", rvalue) != 1) {
+        warn("Invalid config line, ignoring: %s", line);
+        return;
+    }
+
+    urgency = parse_urgency(rvalue);
+    if (urgency < 0) {
+        warn("Invalid urgency, ignoring: %s\n", rvalue);
+        return;
+    }
+
+    cfg.urgency = (NotifyUrgency)urgency;
+}
+
+#define SEC_TO_MSEC 1000
+
+/* Past a day, "never" expresses the intent more honestly than a number. */
+#define TIMEOUT_MAX_SEC 86400
+
+static void config_update_timeout(const char *line) {
+    char rvalue[CONFIG_LINE_MAX];
+    char *end;
+    long secs;
+
+    if (sscanf(line, "%*s %s", rvalue) != 1) {
+        warn("Invalid config line, ignoring: %s", line);
+        return;
+    }
+
+    if (strceq(rvalue, "never")) {
+        cfg.timeout_msec = NOTIFY_EXPIRES_NEVER;
+        return;
+    }
+
+    /*
+     * strtol rather than sscanf: sscanf silently truncates a value too large
+     * for the destination type, so "timeout 4294967296" would come out as 0,
+     * which is NOTIFY_EXPIRES_NEVER. Requiring that nothing follows the number
+     * also rejects trailing junk like "10s" or "0x10".
+     */
+    errno = 0;
+    secs = strtol(rvalue, &end, 10);
+    if (errno || end == rvalue || *end || secs < 0) {
+        warn("Invalid timeout, ignoring: %s\n", rvalue);
+        return;
+    }
+
+    if (secs > TIMEOUT_MAX_SEC) {
+        warn("Clamping timeout to %d from %ld.\n", TIMEOUT_MAX_SEC, secs);
+        secs = TIMEOUT_MAX_SEC;
+    }
+
+    cfg.timeout_msec = (int32_t)secs * SEC_TO_MSEC;
+}
+
 static void config_reset_user_facing(void) {
     cfg.update_interval = 5;
     cfg.log_pressures = false;
+
+    /*
+     * Critical alerts show on top of fullscreen applications and survive "do
+     * not disturb" modes. That is disruptive, but it is what psi-notify has
+     * always done, so it stays the default for anyone who doesn't say
+     * otherwise.
+     */
+    cfg.urgency = NOTIFY_URGENCY_CRITICAL;
+    cfg.timeout_msec = NOTIFY_EXPIRES_DEFAULT;
 
     /* -nan */
     memset(&cfg.cpu.thresholds, 0xff, sizeof(cfg.cpu.thresholds));
@@ -377,6 +446,10 @@ static int config_update_from_file(FILE **override_config) {
             config_update_interval(line);
         } else if (streq(lvalue, "log_pressures")) {
             config_update_log_pressures(line);
+        } else if (streq(lvalue, "urgency")) {
+            config_update_urgency(line);
+        } else if (streq(lvalue, "timeout")) {
+            config_update_timeout(line);
         } else {
             warn("Invalid config line, ignoring: %s", line);
             continue;
@@ -622,6 +695,24 @@ static AlertState pressure_check(const Resource *r, FILE *override_file) {
              state);                                                           \
     } while (0)
 
+/*
+ * A notification is certainly still on screen only if it cannot expire on its
+ * own: either we asked for it to stay until we take it down, or we left the
+ * decision to the notifier and it is critical, which notifiers are not
+ * expected to expire.
+ */
+static bool alert_may_have_expired(void) {
+    if (cfg.timeout_msec == NOTIFY_EXPIRES_NEVER) {
+        return false;
+    }
+
+    if (cfg.timeout_msec == NOTIFY_EXPIRES_DEFAULT) {
+        return cfg.urgency != NOTIFY_URGENCY_CRITICAL;
+    }
+
+    return true;
+}
+
 /* 0 means already active, 1 means newly active. */
 static int alert_user_if_new(const Resource *r) {
     time_t remaining_intervals;
@@ -637,9 +728,20 @@ static int alert_user_if_new(const Resource *r) {
         remaining_intervals = 1;
     }
 
-    /* A_STABILISING -> A_ACTIVE reuses the existing notification */
+    /*
+     * A_STABILISING -> A_ACTIVE reuses the existing notification, but if the
+     * notifier was allowed to expire it then the screen may be empty by now,
+     * so ask for it again rather than let a fresh spike go unannounced.
+     */
     if (!active_notif[r->type].notif) {
         active_notif[r->type].notif = alert_user(r->human_name);
+    } else if (alert_may_have_expired()) {
+        GError *err = NULL;
+
+        if (!notify_notification_show(active_notif[r->type].notif, &err)) {
+            warn("Cannot redisplay notification: %s\n", err->message);
+            g_error_free(err);
+        }
     }
 
     active_notif[r->type].remaining_intervals = remaining_intervals;
@@ -780,8 +882,24 @@ static int check_fuzzers(void) {
            #type,                                                              \
            res->thresholds.time.type)
 
+#define TIMEOUT_DESC_MAX sizeof("-2147483648s")
+
+static const char *timeout_desc(char *buf, size_t len) {
+    if (cfg.timeout_msec == NOTIFY_EXPIRES_DEFAULT) {
+        return "notifier's default";
+    }
+
+    if (cfg.timeout_msec == NOTIFY_EXPIRES_NEVER) {
+        return "never";
+    }
+
+    snprintf_check(buf, len, "%" PRId32 "s", cfg.timeout_msec / SEC_TO_MSEC);
+    return buf;
+}
+
 static void print_config(void) {
     size_t i;
+    char timeout_buf[TIMEOUT_DESC_MAX];
     const char *header = "Config";
 
     if (config_reload_pending) {
@@ -791,7 +909,10 @@ static void print_config(void) {
     info("%s:\n\n", header);
 
     printf("      Log pressures: %s\n", cfg.log_pressures ? "true" : "false");
-    printf("      Update interval: %llds\n\n", (long long)cfg.update_interval);
+    printf("      Update interval: %llds\n", (long long)cfg.update_interval);
+    printf("      Urgency: %s\n", urgency_name(cfg.urgency));
+    printf("      Timeout: %s\n\n",
+           timeout_desc(timeout_buf, TIMEOUT_DESC_MAX));
 
     printf("      Thresholds:\n");
     for_each_arr(i, all_res) {

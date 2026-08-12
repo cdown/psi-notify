@@ -37,6 +37,33 @@ threshold io full avg10 15.00
 
 These are the default settings if no configuration is provided.
 
+.TP
+.BI urgency " [low|normal|critical]"
+The urgency of the notifications, defaulting to
+.BR critical .
+Most notification daemons show critical notifications on top of fullscreen
+applications and do not suppress them in "do not disturb" modes.
+.TP
+.BI timeout " [seconds|never]"
+How long a notification stays on screen. Whether it has any effect depends on
+the urgency. At
+.BR critical ,
+the default, it is ignored, as notification daemons are not expected to expire
+critical notifications, so the alert stays on screen until psi-notify closes it
+once the pressure subsides. At
+.B normal
+and
+.B low
+it is respected, and the daemon takes the notification off screen once the
+timeout elapses. If it is not set at all, the decision is left to the
+notification daemon. A timeout of
+.B 0
+means the same as
+.BR never ,
+as that is how the notification specification encodes it. A timeout longer than
+a day is reduced to a day.
+
+.PP
 For more information about how these values are calculated, please see the PSI
 documentation at
 .UR https://facebookmicrosites.github.io/psi/

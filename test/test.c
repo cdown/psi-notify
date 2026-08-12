@@ -70,6 +70,79 @@ static bool test_config_parse_init_no_file_uses_defaults(void) {
     t_assert(cfg.memory.thresholds.avg10.some == 10.00);
     t_assert(cfg.io.thresholds.avg10.full == 15.00);
 
+    /* Unchanged from before urgency was configurable */
+    t_assert(cfg.urgency == NOTIFY_URGENCY_CRITICAL);
+    t_assert(cfg.timeout_msec == NOTIFY_EXPIRES_DEFAULT);
+    t_assert(!alert_may_have_expired());
+
+    return true;
+}
+
+static bool test_config_parse_urgency(void) {
+    const char *raw_config = "urgency low # c\n";
+    const char *bad_config = "urgency bogus\n";
+    FILE *f = fmemopen((void *)raw_config, strlen(raw_config), "r");
+
+    memset(&cfg, 0, sizeof(Config));
+    config_update_from_file(&f);
+    t_assert(cfg.urgency == NOTIFY_URGENCY_LOW);
+
+    /* Anything that can expire needs redisplaying if pressure comes back */
+    t_assert(alert_may_have_expired());
+
+    f = fmemopen((void *)bad_config, strlen(bad_config), "r");
+    config_update_from_file(&f);
+    t_assert(cfg.urgency == NOTIFY_URGENCY_CRITICAL);
+
+    return true;
+}
+
+static bool test_config_parse_timeout(void) {
+    const char *raw_config = "timeout 10 # c\n";
+    const char *never_config = "urgency normal\ntimeout never\n";
+    const char *bad_config = "timeout 10abc\n";
+    const char *huge_config = "timeout 4294967296\n";
+    FILE *f = fmemopen((void *)raw_config, strlen(raw_config), "r");
+
+    memset(&cfg, 0, sizeof(Config));
+    config_update_from_file(&f);
+    t_assert(cfg.timeout_msec == 10 * SEC_TO_MSEC);
+    t_assert(alert_may_have_expired());
+
+    /* Never expires, so it is still on screen even at a lower urgency */
+    f = fmemopen((void *)never_config, strlen(never_config), "r");
+    config_update_from_file(&f);
+    t_assert(cfg.timeout_msec == NOTIFY_EXPIRES_NEVER);
+    t_assert(!alert_may_have_expired());
+
+    /* Trailing junk is rejected rather than read as a partial number */
+    f = fmemopen((void *)bad_config, strlen(bad_config), "r");
+    config_update_from_file(&f);
+    t_assert(cfg.timeout_msec == NOTIFY_EXPIRES_DEFAULT);
+
+    /* Too large for int32_t, so it must clamp rather than wrap to never */
+    f = fmemopen((void *)huge_config, strlen(huge_config), "r");
+    config_update_from_file(&f);
+    t_assert(cfg.timeout_msec == TIMEOUT_MAX_SEC * SEC_TO_MSEC);
+
+    return true;
+}
+
+static bool test_config_reload_resets_urgency(void) {
+    const char *with_urgency = "urgency low\ntimeout 30\n";
+    const char *without_urgency = "update 5\n";
+    FILE *f = fmemopen((void *)with_urgency, strlen(with_urgency), "r");
+
+    memset(&cfg, 0, sizeof(Config));
+    config_update_from_file(&f);
+    t_assert(cfg.urgency == NOTIFY_URGENCY_LOW);
+    t_assert(cfg.timeout_msec == 30 * SEC_TO_MSEC);
+
+    f = fmemopen((void *)without_urgency, strlen(without_urgency), "r");
+    config_update_from_file(&f);
+    t_assert(cfg.urgency == NOTIFY_URGENCY_CRITICAL);
+    t_assert(cfg.timeout_msec == NOTIFY_EXPIRES_DEFAULT);
+
     return true;
 }
 
@@ -103,6 +176,9 @@ static bool test_pressure_check(void) {
 static bool run_tests(void) {
     t_run(test_config_parse_basic);
     t_run(test_config_parse_init_no_file_uses_defaults);
+    t_run(test_config_parse_urgency);
+    t_run(test_config_parse_timeout);
+    t_run(test_config_reload_resets_urgency);
     t_run(test_pressure_check);
     return true;
 }

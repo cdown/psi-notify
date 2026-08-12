@@ -123,6 +123,46 @@ INFO: Current I/O pressures: some avg10=0.00 avg60=0.00 avg300=0.00
 INFO: Current I/O pressures: full avg10=0.00 avg60=0.00 avg300=0.00
 ```
 
+### urgency
+
+The urgency of the notifications is specified with `urgency
+[low|normal|critical]`. The default is `urgency critical` if unspecified.
+
+Most notification daemons show critical notifications on top of fullscreen
+applications and don't suppress them in "do not disturb" modes. That's
+deliberate, since by the time pressure is high your machine is about to become
+unresponsive, but if you'd rather be alerted less insistently, set a lower
+urgency:
+
+```
+urgency normal
+```
+
+### timeout
+
+How long a notification stays on screen is specified with `timeout [seconds]`,
+or `timeout never` to keep it up until the pressure subsides.
+
+Whether a timeout has any effect depends on the urgency:
+
+- At `critical`, the default, it is ignored. Notification daemons are not
+  expected to expire critical notifications, so the alert stays on screen until
+  psi-notify closes it once the pressure subsides.
+- At `normal` and `low`, it is respected, and the daemon takes the notification
+  off screen once the timeout elapses.
+
+If you don't set it, the notification daemon decides.
+
+`timeout 0` is another way of spelling `timeout never`, since that's how the
+notification specification itself encodes it. A timeout longer than a day is
+reduced to a day, so if you want a notification to stay up for longer than
+that, use `timeout never`.
+
+Bear in mind that a notification which has timed out has already left the
+screen, so it no longer tells you anything about whether the pressure is still
+high. `timeout never` keeps what's on screen in step with reality, since
+psi-notify closes the notification itself once the pressure subsides.
+
 ### threshold
 
 Thresholds are specified with fields in the following format:
